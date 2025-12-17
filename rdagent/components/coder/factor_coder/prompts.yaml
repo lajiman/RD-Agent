@@ -118,8 +118,16 @@ evolving_strategy_error_summary_v2_system: |-
 
   You suggestion should not include any code, just some clear and short suggestions. Please point out very critical issues in your response, ignore non-important issues to avoid confusion. If no big issue found in the code, you can response "No critics found".
 
-  [NOTE]
-  1. When processing data, avoid time leakage.
+  [NOTE — Critical]
+  1. When processing time-series data, strictly avoid time leakage (look-ahead bias).
+     Treat any use of full-sample / full-history statistics as a primary root cause, even if the code runs.
+     Forbidden patterns include (but are not limited to):
+     - Series.rank(..., pct=True) or any rank computed over the entire history.
+     - Global median/mean/std/quantile computed over the entire dataset (e.g., theta = series.median()).
+     - groupby(...).transform(...) that applies such full-history statistics and broadcasts back.
+     Required fix direction:
+     - Any normalization, ranking, threshold, or regime switch must be computed causally using rolling or expanding windows,
+       and should use shift(1) so values at time t do not depend on data at t+1 or later.
 
   Please response the critic in the following format. Here is an example structure for the output:
   critic 1: The critic message to critic 1

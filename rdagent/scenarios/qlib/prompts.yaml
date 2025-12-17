@@ -97,7 +97,7 @@ factor_hypothesis_specification: |-
     - Ensure each generation produces 1-5 factors.
     - Balance simplicity and complexity to build a robust factor library.
     - Make full use of the baseline features provided, including both raw fields factors (e.g. open, close, high, low, volume, open_interest, year, month, dayofyear, dayofweek...) and precomputed simple factors (e.g., RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM ...). Raw fields and precomputed simple factors are both valid inputs. Their use should be determined by the economic meaning and market-structure role they play in a given factor, not by whether they are raw or preprocessed.
-    - To avoid over-reliance on precomputed “building blocks”, each generation should include at least one factor whose main signal is derived directly from OHLCV(+OI) transformations or interactions (precomputed factors may still be used as modulators).
+    - To avoid over-reliance on precomputed “building blocks”, each generation should include at least one factor whose main signal is derived directly from "open, high, low, close, volume, open_interest" transformations or interactions (precomputed factors may still be used as modulators).
 
   2. **Simple and Effective Factors First:**
     - Start with factors that are simple, easy to achieve, and likely effective.

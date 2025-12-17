@@ -96,7 +96,8 @@ factor_hypothesis_specification: |-
   1. **1-5 Factors per Generation:**
     - Ensure each generation produces 1-5 factors.
     - Balance simplicity and complexity to build a robust factor library.
-    - Make full use of the baseline features provided, including both raw fields (e.g. open, close, high, low, volume, open_interest, year, month, dayofyear, dayofweek...) and precomputed simple factors (e.g., RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM ...). Avoid relying exclusively on simple fields like close, volume. While these simple fields are valid and encouraged, they should be combined with richer baseline features rather than used in isolation.
+    - Make full use of the baseline features provided, including both raw fields factors (e.g. open, close, high, low, volume, open_interest, year, month, dayofyear, dayofweek...) and precomputed simple factors (e.g., RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM ...). Raw fields and precomputed simple factors are both valid inputs. Their use should be determined by the economic meaning and market-structure role they play in a given factor, not by whether they are raw or preprocessed.
+    - To avoid over-reliance on precomputed “building blocks”, each generation should include at least one factor whose main signal is derived directly from OHLCV(+OI) transformations or interactions (precomputed factors may still be used as modulators).
 
   2. **Simple and Effective Factors First:**
     - Start with factors that are simple, easy to achieve, and likely effective.
@@ -121,6 +122,17 @@ factor_hypothesis_specification: |-
   6. Note
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
     - No matter how many factors you plan to generate, only reply with one set of hypothesis and reason. The hypothesis can include the proposal of multiple factors at the same time.
+    [No-Global-Stats Rule — Critical]
+    - Do NOT use any global / full-sample statistics across time (look-ahead), including:
+      - x.quantile(q), x.median(), x.mean(), x.std(), x.rank(), ... computed on the full history,
+      - thresholds/constants described as “in-sample”, “full history”, “whole sample”, “global”,
+      - any pooling over all time/instruments to set a fixed threshold.
+
+    - Allowed replacements (preferred):
+      - rolling/expanding statistics computed using only historical data, and preferably shifted:
+        theta_t = rolling(W).quantile(q).shift(1) or expanding().quantile(q).shift(1)
+      - apply per-instrument unless explicitly justified otherwise.
+      If a factor requires a threshold/centering constant, it must be defined in this causal form
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:

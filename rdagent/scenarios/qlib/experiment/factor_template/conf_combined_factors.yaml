@@ -36,22 +36,22 @@ data_handler_config: &data_handler_config
                            "PMOM5", "PMOM10", "PMOM20",
                            "VMOM5", "OIMOM5", "OIMOM20"]
 
-                        - ["($close/Ref($close, 5)-1)", "($close/Ref($close, 10)-1)", "($close/Ref($close, 20)-1)", "($close/Ref($close, 60)-1)",
-                           "($volume/Ref($volume, 5)-1)", "($volume/Ref($volume, 10)-1)", "($volume/Ref($volume, 20)-1)", "($volume/Ref($volume, 60)-1)",
-                           "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 10)-1)", "($open_interest/Ref($open_interest, 20)-1)", "($open_interest/Ref($open_interest, 60)-1)",
-                           "Resi($close, 10)/$close", "Resi($close, 20)/$close", "Rsquare($close, 5)", "Rsquare($close, 10)", "Rsquare($close, 20)", "Rsquare($close, 60)",
-                           "Std($close, 5)/$close", "Std($close, 10)/$close", "Std($close, 20)/$close", "Std($close, 60)/$close", "Std($volume, 5)/($volume+1e-12)", "Std($volume, 20)/($volume+1e-12)",
-                           "WVMA5", "WVMA20", "WVMA60",
-                           "Corr($close, Log($volume+1), 10)", "Corr($close, Log($volume+1), 20)", "Corr($close, Log($volume+1), 60)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
-                           "($high-$low)/$open", "(Less($open, $close)-$low)/$open"]
-                        - ["PMOM5", "PMOM10", "PMOM20", "PMOM60", 
-                           "VMOM5", "VMOM10", "VMOM20", "VMOM60",
-                           "OIMOM5", "OIMOM10", "OIMOM20", "OIMOM60",
-                           "RESI10", "RESI20", "RSQR5", "RSQR10", "RSQR20", "RSQR60",
-                           "STD5", "STD10", "STD20", "STD60", "VSTD5", "VSTD20",
-                           "WVMA5", "WVMA20", "WVMA60",
-                           "CORR10", "CORR20", "CORR60", "CORD10", "CORD20", "CORD60",
-                           "KLEN", "KLOW"]
+                        # - ["($close/Ref($close, 5)-1)", "($close/Ref($close, 10)-1)", "($close/Ref($close, 20)-1)", "($close/Ref($close, 60)-1)",
+                        #    "($volume/Ref($volume, 5)-1)", "($volume/Ref($volume, 10)-1)", "($volume/Ref($volume, 20)-1)", "($volume/Ref($volume, 60)-1)",
+                        #    "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 10)-1)", "($open_interest/Ref($open_interest, 20)-1)", "($open_interest/Ref($open_interest, 60)-1)",
+                        #    "Resi($close, 10)/$close", "Resi($close, 20)/$close", "Rsquare($close, 5)", "Rsquare($close, 10)", "Rsquare($close, 20)", "Rsquare($close, 60)",
+                        #    "Std($close, 5)/$close", "Std($close, 10)/$close", "Std($close, 20)/$close", "Std($close, 60)/$close", "Std($volume, 5)/($volume+1e-12)", "Std($volume, 20)/($volume+1e-12)",
+                        #    "WVMA5", "WVMA20", "WVMA60",
+                        #    "Corr($close, Log($volume+1), 10)", "Corr($close, Log($volume+1), 20)", "Corr($close, Log($volume+1), 60)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
+                        #    "($high-$low)/$open", "(Less($open, $close)-$low)/$open"]
+                        # - ["PMOM5", "PMOM10", "PMOM20", "PMOM60", 
+                        #    "VMOM5", "VMOM10", "VMOM20", "VMOM60",
+                        #    "OIMOM5", "OIMOM10", "OIMOM20", "OIMOM60",
+                        #    "RESI10", "RESI20", "RSQR5", "RSQR10", "RSQR20", "RSQR60",
+                        #    "STD5", "STD10", "STD20", "STD60", "VSTD5", "VSTD20",
+                        #    "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 20)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 20)+1e-12)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
+                        #    "CORR10", "CORR20", "CORR60", "CORD10", "CORD20", "CORD60",
+                        #    "KLEN", "KLOW"]
                         # feature:
                         # - ["$open", "$close", "$high", "$low", "$volume", "$open_interest", "$year", "$month", "$dayofweek", "$dayofyear", "Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
                         #    "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",

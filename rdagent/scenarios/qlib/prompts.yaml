@@ -96,18 +96,29 @@ factor_hypothesis_specification: |-
   1. **1-5 Factors per Generation:**
     - Ensure each generation produces 1-5 factors.
     - Balance simplicity and complexity to build a robust factor library.
-    - Make full use of the financial data provided to you instead of focusing solely on a specific field.
+    - Make full use of the baseline features provided, including both raw fields (e.g. open, close, high, low, volume, open_interest, year, month, dayofyear, dayofweek...) and precomputed simple factors (e.g., RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM ...). Avoid relying exclusively on simple fields like close, volume. While these simple fields are valid and encouraged, they should be combined with richer baseline features rather than used in isolation.
+
   2. **Simple and Effective Factors First:**
-    - Start with factors that are simple, easy to achieve and likely effective.
+    - Start with factors that are simple, easy to achieve, and likely effective.
     - Concisely explain why these factors are expected to work.
-    - Avoid complex or combined factors initially.
-  3. **Gradual Complexity Increase:**
-    - Introduce more complex factors (e.g. machine learning based factors, factors use mult-dimentional factor raw data, etc.) as more experimental results are gathered.
-    - Combine factors only after simpler ones are tested and validated.
-  4. **New Directions and Optimizations:**
-    - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and can starting with simple factors again.
+    - Avoid complex or heavily layered constructions initially.
+
+  3. **Meaningful Combinations:**
+    - The notion of a “meaningful” factor or combination should be understood from the perspective of soybean futures market structure and economic.
+    - Each new factor must involve meaningful computation beyond a direct copy of an existing column. Baseline features may be freely used as inputs, provided the resulting factor introduces a clear transformation, interaction, or normalization.
+    - Combinations should not be arbitrary; they must have clear economic or statistical justification on futures scenario (e.g., trend × volatility to capture momentum under uncertainty; residual deviation × regime indicators; participation pressure × price acceleration; or seasonality or calendar variables used to condition or modulate price, volatility, or participation-based signals in agricultural futures).
+    - Timing variables are optional; if used, avoid standalone hard calendar dummies and instead use them to condition or modulate other signals.
+    - Before proposing a new factor, briefly check whether its formulation is economically or structurally redundant with factors tested in previous iterations (e.g., pure renaming or algebraic rearrangements without a new economic interpretation). Window or parameter variations are acceptable when they represent a different time-scale or market regime perspective.
+
+  4. **Gradual Complexity Increase:**
+    - Introduce more complex factors (e.g. machine learning based factors, factors using multi-dimensional factor raw data, etc.) as more experimental results are gathered.
+    - This part has relatively low priority.
+
+  5. **New Directions and Optimizations:**
+    - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and start with simple factors again.
     - If optimizing a specific type of factor, proceed from simple to complex.
-  5. Note
+
+  6. Note
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
     - No matter how many factors you plan to generate, only reply with one set of hypothesis and reason. The hypothesis can include the proposal of multiple factors at the same time.
 
@@ -202,6 +213,17 @@ factor_feedback_generation:
       "Reasoning": "Reasoning for the new hypothesis",
       "Replace Best Result": "yes or no"
     }
+    When reviewing factors, explicitly point out and discourage any "factors" that merely duplicate an existing raw column (e.g., simply copying dayofweek) without adding new information or transformation. Such factors should not be considered meaningful contributions to the factor library.
+
+    The system retains factors primarily based on annualized return improvement, but in research you should also evaluate factor usefulness through IC magnitude. A factor set may show low annualized return yet still contain individual factors with meaningful predictive signal.
+
+    In your feedback:
+      - Identify any factors or factor families whose IC magnitude exceeds a practical threshold for signal strength. As a guideline, |IC| ≥ 0.03 is generally considered informative in time-series return prediction, and |IC| ≥ 0.05 indicates strong predictive structure.
+      - Even if the combined annualized return is below SOTA and not retained by the system, highlight which factors show promising |IC| and should be revisited in later iterations.
+      - Suggest selective methods to refine these factors (e.g., sign-flip, window adjustment, interaction with volatility or seasonality), but avoid proposing reversal or reuse of the entire batch indiscriminately.
+      - Clearly distinguish between:
+          • low |IC| → likely uninformative  
+          • high |IC| but low annualized return → contains useful components worth isolating or improving
   user: |-
     Target hypothesis: 
     {{ hypothesis_text }}
@@ -226,7 +248,7 @@ factor_feedback_generation:
 
 model_feedback_generation:
   system: |-
-    You are a professional quantitative analysis assistant in top-tier hedge fund.
+    You are a professional quantitative analysis assistant in a top-tier quantitative research team.
 
     The task is described in the following scenario:
     {{ scenario }}
@@ -275,7 +297,7 @@ action_gen:
   system: |-
     Quantitative investment is a data-driven approach to asset management that relies on mathematical models, statistical techniques, and computational methods to analyze financial markets and make investment decisions. Two essential components of this approach are factors and models.
   
-    You are one of the most authoritative quantitative researchers at a top Wall Street hedge fund. I need your expertise to develop new factors and models that can enhance our investment returns. Based on the given context, I will ask for your assistance in designing and implementing either factors or a model.
+    You are a professional quantitative analysis assistant in a top-tier quantitative research team.
 
     You will receive a series of experiments, including their factors and models, and their results. 
     Your task is to analyze the previous experiments and decide whether the next experiment should focus on factors or models.

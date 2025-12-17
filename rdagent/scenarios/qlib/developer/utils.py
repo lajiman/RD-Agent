@@ -32,6 +32,15 @@ def process_factor_data(exp_or_list: List[QlibFactorExperiment] | QlibFactorExpe
                 # otherwise, it is developed with designed task. So it should have feedback.
                 assert isinstance(exp.prop_dev_feedback, CoSTEERMultiFeedback)
                 # Iterate over sub-implementations and execute them to get each factor data
+                
+                pairs = list(zip(exp.sub_workspace_list, exp.prop_dev_feedback))
+                logger.info(f"[FACTOR-MERGE] sub_workspace_list={len(exp.sub_workspace_list)}, "
+                            f"prop_dev_feedback={len(exp.prop_dev_feedback)}, zipped={len(pairs)}")
+
+                selected = [(impl, fb) for impl, fb in pairs if impl and fb]
+                logger.info(f"[FACTOR-MERGE] selected_for_execute={len(selected)}, "
+                            f"skipped_in_zip_or_filter={len(exp.sub_workspace_list) - len(selected)}")
+                
                 message_and_df_list = multiprocessing_wrapper(
                     [
                         (implementation.execute, ("All",))

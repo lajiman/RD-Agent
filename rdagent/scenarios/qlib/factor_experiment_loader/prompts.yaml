@@ -38,12 +38,32 @@ extract_factor_formulation_system: |-
 
     Here are the sources of data I have:
 
-    1. Stock Trade Data Table: Contains information on stock trades, including daily open, close, high, low, VWAP prices, volume, and turnover.
-    2. Financial Data Table: Contains company financial statements, such as the balance sheet, income statement, and cash flow statement.
-    3. Stock Fundamental Data Table: Contains basic information about stocks, like total shares outstanding, free float shares, industry classification, market classification, etc.
-    4. High-Frequency Data: Contains price and volume of each stock at the minute level, including open, close, high, low, volume, and VWAP.
+    1. Futures Trade Data Table:
+        - Daily or higher-frequency prices (open, close, high, low, VWAP), volume, turnover for listed instruments, and time information.
+        Available daily fields for soybean futures (HP_CME_SOY):
+            - open: Daily open price of the futures contract.
+            - high: Daily highest traded price.
+            - low: Daily lowest traded price.
+            - close: Daily settlement or last traded price used as close.
+            - volume: Daily trading volume (number of contracts traded).
+            - open_interest: Number of open futures contracts at the end of the day.
+            - year: Calendar year of the trading date.
+            - month: Calendar month of the trading date (1–12).
+            - dayofweek: Day of week of the trading date (0=Monday,...,4=Friday).
+            - dayofyear: Ordinal day index within the year (1–366).
 
-    Please expand the formulation to use the source data I have provided. If the number of factors exceeds the token limit, extract the formulas for as many factors as possible without exceeding the limit. Ensure to avoid syntax errors related to special characters in JSON, especially with backslashes and underscores in LaTeX.
+    2. Financial Data Table:
+        - Company-level or underlying-asset-level financial statements, such as the balance sheet, income statement, and cash flow statement (e.g., earnings, assets, liabilities, cash flows).
+
+    3. Fundamental Data Table:
+        - Basic information about instruments, such as total shares or contract size, free float, industry or sector classification, market classification, etc.
+
+    Please follow these principles:
+    - Reconstruct each factor **as faithfully as possible to the research report**, even if it uses financial or fundamental variables that may not be directly available in the current soybean futures dataset.
+    - Whenever possible, prefer using variables that can be naturally mapped to the available soybean futures daily data (open, high, low, close, volume, open_interest, factor, and calendar features).
+    - In the variable explanations, clearly indicate the conceptual data source (e.g., “daily futures close price”, “accounting earnings from the financial statement”, “industry classification from the fundamental data table”, “1-minute VWAP from high-frequency data”).
+
+    If the number of factors exceeds the token limit, extract the formulas for as many factors as possible without exceeding the limit. Ensure to avoid syntax errors related to special characters in JSON, especially with backslashes and underscores in LaTeX.
 
     Provide your analysis in JSON format, using the following schema:
     {
@@ -84,7 +104,7 @@ classify_system_chinese: |-
 classify_system: |-
     Your job is classify whether the user input document is a quantitative investment research report. The user will input a document and you should classify it based on the following conditions:
     1. The document is about finance other than other fields like biology, physics, chemistry, etc.
-    2. The document is a research report on stock selection (which needs to be strictly separated from time selection and base selection) in the field of metalworking quantification.
+    2. The document is a quantitative research report involving futures markets, commodity markets, or derivatives (not restricted to stock selection). It may include topics such as factor construction, return prediction, seasonality, roll yield, basis, term structure, or other futures-related models.
     3. The document involves the composition of factors or models, or tests their performance.
 
     If the document meets all the above conditions, please return 1; otherwise, please return 0.
@@ -96,97 +116,96 @@ classify_system: |-
     }
 
 factor_viability_system: |-
-    User has designed several factors in quant investment. Please help the user to check the viability of these factors.
-    These factors are used to build a daily frequency strategy in China A-share market.
+  User has designed several factors for quantitative futures trading. Please help the user to check the viability of these factors.
+  These factors are used to build a daily-frequency strategy in the futures market (specifically soybean futures).
 
-    User will provide a pandas dataframe like table containing following information:
-    1. The name of the factor;
-    2. The simple description of the factor;
-    3. The formulation of the factor in latex format;
-    4. The description to the variables and functions in the formulation of the factor.
+  The user will provide a pandas-dataframe-like table containing:
+  1. The name of the factor;
+  2. A brief description of the factor;
+  3. The formulation of the factor in LaTeX format;
+  4. The explanation of variables and functions used in the formulation.
 
-    User has several source data:
-    1. The Stock Trade Data Table containing information about stock trades, such as daily open, close, high, low, vwap prices, volume, and turnover;
-    2. The Financial Data Table containing company financial statements such as the balance sheet, income statement, and cash flow statement;
-    3. The Stock Fundamental Data Table containing basic information about stocks, like total shares outstanding, free float shares, industry classification, market classification, etc;
-    4. The high frequency data containing price and volume of each stock containing open close high low volume vwap in each minute;
-    5. The Consensus Expectations Factor containing the consensus expectations of the analysts about the future performance of the company.
+  The available data sources include:
 
+  1. **Soybean Futures Daily Data Table**
+     - Fields: open, high, low, close, volume, open_interest, and possibly a precomputed column named factor.
 
-    A viable factor should satisfy the following conditions:
-    1. The factor should be able to be calculated in daily frequency;
-    2. The factor should be able to be calculated based on each stock;
-    3. The factor should be able to be calculated based on the source data provided by user.
+  2. **Calendar Features Derived from the Trade Date**
+     - year, month, dayofweek, dayofyear
 
-    You should give decision to each factor provided by the user. You should reject the factor based on very solid reason.
-    Please return true to the viable factor and false to the non-viable factor.
+  A viable futures factor must satisfy:
+  1. The factor can be computed at **daily frequency**;
+  2. The factor can be computed for the given futures instrument;
+  3. The factor can be computed **using only the available data sources** listed above;
+  4. The factor does not rely on unavailable data such as stock financial statements, fundamentals, analyst expectations, or corporate-level variables;
+  5. The factor does not require cross-sectional data across multiple instruments (since only one instrument is available).
 
-    Notice, you can just return part of the factors due to token limit. Your factor name should be the same as the user's factor name.
+  You should give a decision for each factor provided by the user.  
+  A factor should only be rejected if there is a **clear and solid reason** why it cannot be computed with the available data.
 
-    Please respond with your decision in JSON format. Just respond the output json string without any interaction and explanation.
-    The JSON schema should include:
-    {
-        "Name to factor 1":
-        {
-            "viability": true,
-            "reason": "The reason to the viability of this factor"
-        },
-        "Name to factor 2":
-        {
-            "viability": false,
-            "reason": "The reason to the non-viability of this factor"
-        }
-        "Name to factor 3":
-        {
-            "viability": true,
-            "reason": "The reason to the viability of this factor"
-        }
-    }
+  Please return `true` for a viable factor and `false` for a non-viable factor.
+
+  Due to token limits, you may return only part of the factors.  
+  Your factor names should match the user's factor names exactly.
+
+  Please respond in JSON format only, without any additional text.  
+  The JSON schema should be:
+
+  {
+      "Name of factor 1": {
+          "viability": true,
+          "reason": "Reason explaining why this factor can be computed with available futures data."
+      },
+      "Name of factor 2": {
+          "viability": false,
+          "reason": "Reason explaining why this factor cannot be computed with available futures data."
+      }
+  }
+
 
 factor_relevance_system: |-
-    User has designed several factors in quant investment. Please help the user to check the relevance of these factors to be real quant investment factors.
-    These factors are used to build a daily frequency strategy in China A-share market.
+  User has designed several factors for quantitative futures trading. Please help the user check the relevance of these factors as real quantitative factors.
+  These factors are used to build a daily-frequency strategy in the futures market (specifically soybean futures).
 
-    User will provide a pandas dataframe like table containing following information:
-    1. The name of the factor;
-    2. The simple description of the factor;
-    3. The formulation of the factor in latex format;
-    4. The description to the variables and functions in the formulation of the factor.
+  The user will provide a pandas-dataframe-like table containing:
+  1. The name of the factor;
+  2. A simple description of the factor;
+  3. The formulation in LaTeX format;
+  4. The explanation of variables and functions used.
 
-    A relevant factor should satisfy the following conditions:
-    1. The factor should be able to be calculated in daily frequency;
-    2. The factor should be able to be calculated based on each stock;
-    3. The factor should only be calculated based on mathematical manipulation, not based on subjective judgment or natural language analysis.
+  A relevant futures factor must satisfy:
+  1. The factor can be computed at **daily frequency**;
+  2. The factor applies to the given futures instrument;
+  3. The factor is based purely on mathematical operations on the available data;
+  4. The factor does **not** rely on subjective judgment, qualitative text analysis, discretionary interpretation, or semantic information;
+  5. The factor does **not** require unavailable stock-specific data such as financial statements, corporate fundamentals, analyst expectations, or cross-sectional stock features.
 
-    You should give decision to each factor provided by the user. You should reject the factor based on very solid reason.
-    Please return true to the relevant factor and false to the irrelevant factor.
+  You should give a decision for each factor. A factor should only be rejected with a clear and solid reason.
 
-    Notice, you can just return part of the factors due to token limit. Your factor name should be the same as the user's factor name.
+  Please return `true` for relevant factors and `false` for irrelevant ones.
 
-    Please respond with your decision in JSON format. Just respond the output json string without any interaction and explanation.
-    The JSON schema should include:
-    {
-        "Name to factor 1":
-        {
-            "relevance": true,
-            "reason": "The reason to the relevance of this factor"
-        },
-        "Name to factor 2":
-        {
-            "relevance": false,
-            "reason": "The reason to the non-relevance of this factor"
-        }
-        "Name to factor 3":
-        {
-            "relevance": true,
-            "reason": "The reason to the relevance of this factor"
-        }
-    }
+  Due to token limits, you may return only part of the factors.
+  The factor names must match the user's factor names exactly.
+
+  Please respond with JSON only, without explanation outside the JSON object.
+  The JSON schema should be:
+
+  {
+      "Name of factor 1": {
+          "relevance": true,
+          "reason": "Reason explaining why this factor is a valid quantitative futures factor."
+      },
+      "Name of factor 2": {
+          "relevance": false,
+          "reason": "Reason explaining why this factor is not a valid quantitative futures factor."
+      }
+  }
+
 
 
 factor_duplicate_system: |-
     User has designed several factors in quant investment. Please help the user to duplicate these factors.
-    These factors are used to build a daily frequency strategy in China A-share market.
+    These factors are used to build a daily-frequency strategy in the futures market (for example, soybean futures).
 
     User will provide a pandas dataframe like table containing following information:
     1. The name of the factor;

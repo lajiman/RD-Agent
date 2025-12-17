@@ -149,6 +149,128 @@ class FactorFBWorkspace(FBWorkspace):
 
             self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
+            # ------------------------------
+            # ★ 强制注入所有基础简单因子（最快速修复）
+            # ------------------------------
+
+            #       - **Calendar / seasonality features**: $year, $month, $dayofweek, $dayofyear  
+            #     Capture seasonal cycles, weekday effects, and time-based structure.
+
+            #   - **Position / participation features**: $open_interest, $OIMOM5, $OIMOM20  
+            #     Reflect market participation, funding pressure, and crowding risk.
+
+            #   - **Price trend & deviation features**: $RESI5, $RESI10, $RSQR5, $RSQR10, $RSQR20, $RSQR60  
+            #     Describe short- to long-term trend strength and deviations from trend.
+
+            #   - **Volatility & activity features**: $WVMA5, $WVMA60, $VSTD5, $STD5  
+            #     Represent volatility bursts and abnormal price–volume activity.
+
+            #   - **Price–volume relation features**: $CORR5, $CORR10, $CORR20, $CORR60, $CORD5, $CORD10, $CORD60  
+            #     Measure how price interacts with volume or volume changes.
+
+            #   - **K-line structure features**: $KLEN, $KLOW  
+            #     Capture intraday reversal structure and swing amplitude.
+
+            #   - **Momentum-related features**: $PMOM5, $PMOM10, $PMOM20, $VMOM5  
+            #     Reflect short- and medium-term momentum behavior in price and volume.
+            import numpy as np
+
+            h5_path = self.workspace_path / "daily_pv.h5"
+            if h5_path.exists():
+                df = pd.read_hdf(h5_path, key="data")
+
+                # ========== RESI: Rolling residual ratio ==========
+                def _resi(x):
+                    n = len(x)
+                    t = np.arange(n)
+                    coef = np.polyfit(t, x, 1)
+                    pred = coef[0] * t + coef[1]
+                    return (x[-1] - pred[-1]) / (x[-1] + 1e-12)
+
+                df["$RESI5"]  = df["$close"].rolling(5).apply(_resi, raw=True)
+                df["$RESI10"] = df["$close"].rolling(10).apply(_resi, raw=True)
+
+                # ========== RSQUARE ==========
+                def _rsq(x):
+                    n = len(x)
+                    t = np.arange(n)
+                    coef = np.polyfit(t, x, 1)
+                    pred = coef[0] * t + coef[1]
+                    ss_res = ((x - pred) ** 2).sum()
+                    ss_tot = ((x - x.mean()) ** 2).sum() + 1e-12
+                    return 1 - ss_res / ss_tot
+
+                df["$RSQR5"]  = df["$close"].rolling(5).apply(_rsq, raw=True)
+                df["$RSQR10"] = df["$close"].rolling(10).apply(_rsq, raw=True)
+                df["$RSQR20"] = df["$close"].rolling(20).apply(_rsq, raw=True)
+                df["$RSQR60"] = df["$close"].rolling(60).apply(_rsq, raw=True)
+
+                # ========== KLEN / KLOW ==========
+                df["$KLEN"] = (df["$high"] - df["$low"]) / (df["$open"] + 1e-12)
+                df["$KLOW"] = (np.minimum(df["$open"], df["$close"]) - df["$low"]) / (df["$open"] + 1e-12)
+
+                # ========== CORR ==========
+                df["$CORR5"]  = df["$close"].rolling(5).corr(np.log(df["$volume"] + 1))
+                df["$CORR10"] = df["$close"].rolling(10).corr(np.log(df["$volume"] + 1))
+                df["$CORR20"] = df["$close"].rolling(20).corr(np.log(df["$volume"] + 1))
+                df["$CORR60"] = df["$close"].rolling(60).corr(np.log(df["$volume"] + 1))
+
+                # ========== CORD（price ratio vs volume ratio）==========
+                df["$CORD5"]  = (df["$close"] / df["$close"].shift(1)).rolling(5).corr(
+                                    np.log(df["$volume"] / df["$volume"].shift(1) + 1)
+                                )
+                df["$CORD10"] = (df["$close"] / df["$close"].shift(1)).rolling(10).corr(
+                                    np.log(df["$volume"] / df["$volume"].shift(1) + 1)
+                                )
+                df["$CORD60"] = (df["$close"] / df["$close"].shift(1)).rolling(60).corr(
+                                    np.log(df["$volume"] / df["$volume"].shift(1) + 1)
+                                )
+
+                # ========== WVMA（5 & 60）==========
+                df["$WVMA5"] = (
+                    ((df["$close"] / df["$close"].shift(1) - 1).abs() * df["$volume"])
+                    .rolling(5).std()
+                    /
+                    (
+                        ((df["$close"] / df["$close"].shift(1) - 1).abs() * df["$volume"])
+                        .rolling(5).mean() + 1e-12
+                    )
+                )
+
+                df["$WVMA60"] = (
+                    ((df["$close"] / df["$close"].shift(1) - 1).abs() * df["$volume"])
+                    .rolling(60).std()
+                    /
+                    (
+                        ((df["$close"] / df["$close"].shift(1) - 1).abs() * df["$volume"])
+                        .rolling(60).mean() + 1e-12
+                    )
+                )
+
+                # ========== STD5 ==========
+                df["$STD5"] = df["$close"].rolling(5).std() / (df["$close"] + 1e-12)
+
+                # ========== VSTD5 ==========
+                df["$VSTD5"] = df["$volume"].rolling(5).std() / (df["$volume"] + 1e-12)
+
+                # ========== ROC60 ==========
+                df["$ROC60"] = df["$close"].shift(60) / (df["$close"] + 1e-12)
+
+                # ========== PMOM 系列 ==========
+                df["$PMOM5"]  = df["$close"] / df["$close"].shift(5)  - 1
+                df["$PMOM10"] = df["$close"] / df["$close"].shift(10) - 1
+                df["$PMOM20"] = df["$close"] / df["$close"].shift(20) - 1
+
+                # ========== VMOM ==========
+                df["$VMOM5"] = df["$volume"] / df["$volume"].shift(5) - 1
+
+                # ========== OIMOM 系列 ==========
+                df["$OIMOM5"]  = df["$open_interest"] / df["$open_interest"].shift(5)  - 1
+                df["$OIMOM20"] = df["$open_interest"] / df["$open_interest"].shift(20) - 1
+
+                # 回写到 daily_pv.h5
+                df.to_hdf(h5_path, key="data", mode="w")
+
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False
             execution_error = None

@@ -1,13 +1,13 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/cn_data"
-    region: cn
+    provider_uri: "~/.qlib/qlib_data/soy_continuous"
+    region: us
 
-market: &market csi300
-benchmark: &benchmark SH000300
+market: &market all  
+benchmark: &benchmark HP_CME_SOY  
 
 data_handler_config: &data_handler_config
-    start_time: 2008-01-01
-    end_time: 2022-08-01
+    start_time: 2002-01-01
+    end_time: 2025-01-01
     instruments: *market
     data_loader:
         class: NestedDataLoader
@@ -17,64 +17,161 @@ data_handler_config: &data_handler_config
                   kwargs:
                     config:
                         label: 
-                            - ["Ref($close, -2)/Ref($close, -1) - 1"]
+                            - ["Ref($close, -8)/Ref($close, -1) - 1"]
                             - ["LABEL0"]
                         feature:
-                            - ["Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
-                               "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",
-                               "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 5)", "Corr($close, Log($volume+1), 10)",
-                               "Ref($close, 60)/$close", "Resi($close, 10)/$close", "Std($volume, 5)/($volume+1e-12)",
-                               "Rsquare($close, 60)", "Corr($close, Log($volume+1), 60)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
-                               "Std($close, 5)/$close", "Rsquare($close, 20)", "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 60)",
-                               "Corr($close/Ref($close,1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close, Log($volume+1), 20)",
-                               "(Less($open, $close)-$low)/$open"]
-                            - ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
-                               "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
-                               "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"]
+                        - ["Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
+                           "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",
+                           "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 5)", "Corr($close, Log($volume+1), 10)",
+                           "Ref($close, 60)/$close", "Resi($close, 10)/$close", "Std($volume, 5)/($volume+1e-12)",
+                           "Rsquare($close, 60)", "Corr($close, Log($volume+1), 60)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
+                           "Std($close, 5)/$close", "Rsquare($close, 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
+                           "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close, Log($volume+1), 20)",
+                           "(Less($open, $close)-$low)/$open",
+                           "($close/Ref($close, 5)-1)",   "($close/Ref($close, 10)-1)",  "($close/Ref($close, 20)-1)",
+                           "($volume/Ref($volume, 5)-1)", "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 20)-1)"]
+                        - ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
+                           "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
+                           "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW",
+                           "PMOM5", "PMOM10", "PMOM20",
+                           "VMOM5", "OIMOM5", "OIMOM20"]
+
+                        - ["($close/Ref($close, 5)-1)", "($close/Ref($close, 10)-1)", "($close/Ref($close, 20)-1)", "($close/Ref($close, 60)-1)",
+                           "($volume/Ref($volume, 5)-1)", "($volume/Ref($volume, 10)-1)", "($volume/Ref($volume, 20)-1)", "($volume/Ref($volume, 60)-1)",
+                           "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 10)-1)", "($open_interest/Ref($open_interest, 20)-1)", "($open_interest/Ref($open_interest, 60)-1)",
+                           "Resi($close, 10)/$close", "Resi($close, 20)/$close", "Rsquare($close, 5)", "Rsquare($close, 10)", "Rsquare($close, 20)", "Rsquare($close, 60)",
+                           "Std($close, 5)/$close", "Std($close, 10)/$close", "Std($close, 20)/$close", "Std($close, 60)/$close", "Std($volume, 5)/($volume+1e-12)", "Std($volume, 20)/($volume+1e-12)",
+                           "WVMA5", "WVMA20", "WVMA60",
+                           "Corr($close, Log($volume+1), 10)", "Corr($close, Log($volume+1), 20)", "Corr($close, Log($volume+1), 60)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
+                           "($high-$low)/$open", "(Less($open, $close)-$low)/$open"]
+                        - ["PMOM5", "PMOM10", "PMOM20", "PMOM60", 
+                           "VMOM5", "VMOM10", "VMOM20", "VMOM60",
+                           "OIMOM5", "OIMOM10", "OIMOM20", "OIMOM60",
+                           "RESI10", "RESI20", "RSQR5", "RSQR10", "RSQR20", "RSQR60",
+                           "STD5", "STD10", "STD20", "STD60", "VSTD5", "VSTD20",
+                           "WVMA5", "WVMA20", "WVMA60",
+                           "CORR10", "CORR20", "CORR60", "CORD10", "CORD20", "CORD60",
+                           "KLEN", "KLOW"]
+                        # feature:
+                        # - ["$open", "$close", "$high", "$low", "$volume", "$open_interest", "$year", "$month", "$dayofweek", "$dayofyear", "Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
+                        #    "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",
+                        #    "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 5)", "Corr($close, Log($volume+1), 10)",
+                        #    "Ref($close, 60)/$close", "Resi($close, 10)/$close", "Std($volume, 5)/($volume+1e-12)",
+                        #    "Rsquare($close, 60)", "Corr($close, Log($volume+1), 60)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
+                        #    "Std($close, 5)/$close", "Rsquare($close, 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
+                        #    "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close, Log($volume+1), 20)",
+                        #    "(Less($open, $close)-$low)/$open",
+                        #    "($close/Ref($close, 5)-1)",   "($close/Ref($close, 10)-1)",  "($close/Ref($close, 20)-1)",
+                        #    "($volume/Ref($volume, 5)-1)", "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 20)-1)"]
+                        # - ["OPEN", "CLOSE", "HIGH", "LOW", "VOLUME", "OI", "YR", "MON", "DOFW", "DOFY", "RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
+                        #    "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
+                        #    "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW",
+                        #    "PMOM5", "PMOM10", "PMOM20",
+                        #    "VMOM5", "OIMOM5", "OIMOM20"]
                 - class: qlib.data.dataset.loader.StaticDataLoader
                   kwargs:
                     config: "combined_factors_df.parquet"
-
+    infer_processors:
+      - class: RobustZScoreNorm
+        kwargs:
+          fields_group: feature
+          clip_outlier: true
+          fit_start_time: 2003-01-01
+          fit_end_time: 2016-12-31
+      - class: Fillna
+        kwargs:
+          fields_group: feature
+    # learn_processors:
+    #   - class: DropnaLabel
+    #   - class: RobustZScoreNorm
+    #     kwargs:
+    #       fields_group: feature
+    #       clip_outlier: true
+    #       fit_start_time: 2002-01-01
+    #       fit_end_time: 2016-12-31
+    #   - class: Fillna
+    #     kwargs:
+    #       fields_group: feature
     learn_processors:
-        - class: DropnaLabel
-        - class: CSZScoreNorm
-          kwargs:
-              fields_group: label
+      - class: DropnaLabel         
+      - class: Fillna        
 
 port_analysis_config: &port_analysis_config
     strategy:
-        class: TopkDropoutStrategy
-        module_path: qlib.contrib.strategy
+        # class: SingleAssetThresholdStrategy
+        # module_path: rdagent.scenarios.qlib.strategy.single_asset
+        # kwargs:
+        #     signal: <PRED>         # 和原来 TopkDropoutStrategy 一致
+        #     long_threshold: 0.0    # 你可以后面再调
+        #     short_threshold: null  # 暂时不做空
+        #     long_weight: 1.0
+        #     short_weight: -1.0
+        #     flat_weight: 0.0
+        #     allow_short: false
+        class: SingleAssetSmoothQuantileStrategy
+        module_path: rdagent.scenarios.qlib.strategy.single_asset  # 改成你保存这个类的 python 路径
         kwargs:
-            signal: <PRED>
-            topk: 50
-            n_drop: 5
+          signal: <PRED>
+
+          # 分位数阈值：越接近 0.5，越“宽松”；越靠近 0/1，越“极端”
+          high_quantile: 0.7
+          low_quantile: 0.3
+          quantile_history_window: 60
+          min_history: 30
+
+          # 信号平滑：3 天滚动均值是一个比较温和的选择
+          smooth_window: 3
+
+          # 权重映射
+          max_long_weight: 1.0
+          max_short_weight: -1.0
+          tanh_scale: 3.0
+
+          # 先按你实际需求设置是否允许做空
+          allow_short: True   # 或 True
     backtest:
-        start_time: 2017-01-01
-        end_time: 2020-08-01
+        start_time: 2019-01-01
+        end_time: 2025-01-01
         account: 100000000
         benchmark: *benchmark
         exchange_kwargs:
-            limit_threshold: 0.095
+            limit_threshold: 0.5
             deal_price: close
-            open_cost: 0.0005
-            close_cost: 0.0015
-            min_cost: 5
+            open_cost: 0
+            close_cost: 0
+            min_cost: 0
 
 task:
     model:
-        class: LGBModel
-        module_path: qlib.contrib.model.gbdt
+        class: LGBModelWithFeatLog
+        module_path: rdagent.scenarios.qlib.model.logging_lgbm
         kwargs:
-            loss: mse
-            colsample_bytree: 0.8879
-            learning_rate: 0.2
-            subsample: 0.8789
-            lambda_l1: 205.6999
-            lambda_l2: 580.9768
-            max_depth: 8
-            num_leaves: 210
-            num_threads: 20
+          loss: mse
+
+          # —— 控模型复杂度 —— 
+          num_leaves: 31          # 从 63 降到 31，树变浅一点
+          min_data_in_leaf: 40    # 比 50 稍微放松，但仍然比较保守
+          max_depth: -1           # 由 num_leaves 控制复杂度
+
+          # —— 学习率 & 轮数 —— 
+          learning_rate: 0.02     # 从 0.05 降到 0.02，让模型慢慢学，多给几轮发挥空间
+
+          # —— 随机性 & 正则 —— 
+          colsample_bytree: 0.8   # feature_fraction
+          subsample: 0.8          # bagging_fraction
+          lambda_l1: 0.0
+          lambda_l2: 5.0          # 轻微 L2 正则
+          # 也可以视情况增加到 10 左右
+          num_threads: 20
+
+    # model:
+    #   class: LinearModel
+    #   module_path: qlib.contrib.model.linear
+    #   kwargs:
+    #     estimator: "ridge"
+    #     alpha: 0.05
+    #     fit_intercept: true
+    #     include_valid: false
     dataset:
         class: DatasetH
         module_path: qlib.data.dataset
@@ -84,17 +181,17 @@ task:
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
-                train: [2008-01-01, 2014-12-31]
-                valid: [2015-01-01, 2016-12-31]
-                test: [2017-01-01, 2020-08-01]
+              train: [2003-01-01, 2016-12-31]
+              valid: [2017-01-01, 2018-12-31]
+              test:  [2019-01-01, 2025-01-01]
     record: 
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
           kwargs: 
             model: <MODEL>
             dataset: <DATASET>
-        - class: SigAnaRecord
-          module_path: qlib.workflow.record_temp
+        - class: TSSigAnaRecord
+          module_path: rdagent.scenarios.qlib.record.TSSignalRecord
           kwargs: 
             ana_long_short: False
             ann_scaler: 252

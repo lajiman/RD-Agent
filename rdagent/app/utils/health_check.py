@@ -50,23 +50,44 @@ def check_and_list_free_ports(start_port=19899, max_ports=10) -> None:
         logger.info(f"Port 19899 is not occupied, you can run the `rdagent ui` command")
 
 
-def test_chat(chat_model, chat_api_key, chat_api_base):
+def test_chat(chat_model, chat_api_key, chat_api_base, version=None):
     logger.info(f"🧪 Testing chat model: {chat_model}")
     try:
         if chat_api_base is None:
-            response: ModelResponse = completion(
-                model=chat_model,
-                api_key=chat_api_key,
-                messages=[
-                    {"role": "user", "content": "Hello!"},
-                ],
-            )
+            if version is None:
+                response: ModelResponse = completion(
+                    model=chat_model,
+                    api_key=chat_api_key,
+                    messages=[
+                        {"role": "user", "content": "Hello!"},
+                    ],
+                )
+            else:   
+                response: ModelResponse = completion(
+                    model=chat_model,
+                    api_key=chat_api_key,
+                    api_version=version,
+                    messages=[
+                        {"role": "user", "content": "Hello!"},
+                    ],
+                )
         else:
-            response: ModelResponse = completion(
-                model=chat_model,
-                api_key=chat_api_key,
-                api_base=chat_api_base,
-                messages=[
+            if version is None:
+                response: ModelResponse = completion(
+                    model=chat_model,
+                    api_key=chat_api_key,
+                    api_base=chat_api_base,
+                    messages=[
+                        {"role": "user", "content": "Hello!"},
+                    ],
+                )
+            else:
+                response: ModelResponse = completion(
+                    model=chat_model,
+                    api_key=chat_api_key,
+                    api_base=chat_api_base,
+                    api_version=version,
+                    messages=[
                     {"role": "user", "content": "Hello!"},
                 ],
             )
@@ -77,15 +98,39 @@ def test_chat(chat_model, chat_api_key, chat_api_base):
         return False
 
 
-def test_embedding(embedding_model, embedding_api_key, embedding_api_base):
+def test_embedding(embedding_model, embedding_api_key, embedding_api_base, version=None):
     logger.info(f"🧪 Testing embedding model: {embedding_model}")
     try:
-        response = embedding(
-            model=embedding_model,
-            api_key=embedding_api_key,
-            api_base=embedding_api_base,
-            input="Hello world!",
-        )
+        if embedding_api_base is None:
+            if version is None:
+                response = embedding(
+                    model=embedding_model,
+                    api_key=embedding_api_key,
+                    input="Hello world!",
+                )
+            else:
+                response = embedding(
+                    model=embedding_model,
+                    api_key=embedding_api_key,
+                    api_version=version,
+                    input="Hello world!",
+                )
+        else:
+            if version is None:
+                response = embedding(
+                    model=embedding_model,
+                    api_key=embedding_api_key,
+                    api_base=embedding_api_base,
+                    input="Hello world!",
+                )
+            else:
+                response = embedding(
+                    model=embedding_model,
+                    api_key=embedding_api_key,
+                    api_base=embedding_api_base,
+                    api_version=version,
+                    input="Hello world!",
+                )
         logger.info("✅ Embedding test passed.")
         return True
     except Exception as e:
@@ -119,15 +164,37 @@ def env_check():
         embedding_model = os.getenv("EMBEDDING_MODEL")
         embedding_api_key = chat_api_key
         embedding_api_base = chat_api_base
+    elif "AZURE_API_KEY" in os.environ:
+        chat_api_key = os.getenv("AZURE_API_KEY")
+        chat_api_base = os.getenv("AZURE_API_BASE")
+        chat_api_version = os.getenv("AZURE_API_VERSION")
+        chat_model = os.getenv("CHAT_MODEL")
+        embedding_model = os.getenv("EMBEDDING_MODEL")
+        embedding_api_key = chat_api_key
+        embedding_api_base = chat_api_base
+        embedding_api_version = chat_api_version
     else:
         logger.error("No valid configuration was found, please check your .env file.")
 
     logger.info("🚀 Starting test...\n")
-    result_embedding = test_embedding(
-        embedding_model=embedding_model, embedding_api_key=embedding_api_key, embedding_api_base=embedding_api_base
-    )
-    result_chat = test_chat(chat_model=chat_model, chat_api_key=chat_api_key, chat_api_base=chat_api_base)
-
+    if "AZURE_API_KEY" in os.environ:
+        result_embedding = test_embedding(
+            embedding_model=embedding_model,
+            embedding_api_key=embedding_api_key,
+            embedding_api_base=embedding_api_base,
+            version=embedding_api_version,
+        )
+        result_chat = test_chat(
+            chat_model=chat_model,
+            chat_api_key=chat_api_key,
+            chat_api_base=chat_api_base,
+            version=chat_api_version,
+        )
+    else:
+        result_embedding = test_embedding(
+            embedding_model=embedding_model, embedding_api_key=embedding_api_key, embedding_api_base=embedding_api_base
+        )
+        result_chat = test_chat(chat_model=chat_model, chat_api_key=chat_api_key, chat_api_base=chat_api_base)
     if result_chat and result_embedding:
         logger.info("✅ All tests completed.")
     else:

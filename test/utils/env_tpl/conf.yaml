@@ -1,46 +1,74 @@
 qlib_init:
-    provider_uri: "~/.qlib/qlib_data/cn_data"
-    region: cn
-market: &market csi300
-benchmark: &benchmark SH000300
+    provider_uri: "~/.qlib/qlib_data/soy_continuous"
+    region: us
+
+market: &market all  
+benchmark: &benchmark HP_CME_SOY  
+
 data_handler_config: &data_handler_config
-    start_time: 2008-01-01
-    end_time: 2020-08-01
-    fit_start_time: 2008-01-01
-    fit_end_time: 2014-12-31
+    start_time: 2002-01-01
+    end_time: 2025-01-01
+    fit_start_time: 2002-01-01
+    fit_end_time: 2018-12-31
     instruments: *market
+    infer_processors:
+        - class: FilterCol
+          kwargs:
+              fields_group: feature
+              col_list: ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
+                            "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
+                            "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW"
+                        ]
+        - class: RobustZScoreNorm
+          kwargs:
+              fields_group: feature
+              clip_outlier: true
+        - class: Fillna
+          kwargs:
+              fields_group: feature
+    learn_processors:
+        - class: DropnaLabel
+        - class: CSRankNorm
+          kwargs:
+              fields_group: label
+    label: ["Ref($close, -2) / Ref($close, -1) - 1"] 
+
 port_analysis_config: &port_analysis_config
     strategy:
-        class: TopkDropoutStrategy
-        module_path: qlib.contrib.strategy
+        class: SingleAssetThresholdStrategy
+        module_path: rdagent.scenarios.qlib.strategy.single_asset
         kwargs:
-            signal: <PRED>
-            topk: 50
-            n_drop: 5
+            signal: <PRED>         # 和原来 TopkDropoutStrategy 一致
+            long_threshold: 0.0    # 你可以后面再调
+            short_threshold: null  # 暂时不做空
+            long_weight: 1.0
+            short_weight: -1.0
+            flat_weight: 0.0
+            allow_short: false
     backtest:
-        start_time: 2017-01-01
-        end_time: 2020-08-01
+        start_time: 2019-01-01
+        end_time: 2025-01-01
         account: 100000000
         benchmark: *benchmark
         exchange_kwargs:
             limit_threshold: 0.095
             deal_price: close
-            open_cost: 0.0005
-            close_cost: 0.0015
-            min_cost: 5
+            open_cost: 0
+            close_cost: 0
+            min_cost: 0
 task:
     model:
-        class: LGBModel
-        module_path: qlib.contrib.model.gbdt
+        class: LGBModelWithFeatLog
+        module_path: rdagent.scenarios.qlib.model.logging_lgbm
         kwargs:
             loss: mse
             colsample_bytree: 0.8879
-            learning_rate: 0.2
+            learning_rate: 0.05
             subsample: 0.8789
-            lambda_l1: 205.6999
-            lambda_l2: 580.9768
-            max_depth: 8
-            num_leaves: 210
+            lambda_l1: 0
+            lambda_l2: 0
+            max_depth: -1
+            num_leaves: 63
             num_threads: 20
     dataset:
         class: DatasetH
@@ -51,17 +79,17 @@ task:
                 module_path: qlib.contrib.data.handler
                 kwargs: *data_handler_config
             segments:
-                train: [2008-01-01, 2014-12-31]
-                valid: [2015-01-01, 2016-12-31]
-                test: [2017-01-01, 2020-08-01]
+                train: [2002-01-01, 2016-12-31]
+                valid: [2017-01-01, 2018-12-31]
+                test:  [2019-01-01, 2025-01-01]
     record: 
         - class: SignalRecord
           module_path: qlib.workflow.record_temp
           kwargs: 
             model: <MODEL>
             dataset: <DATASET>
-        - class: SigAnaRecord
-          module_path: qlib.workflow.record_temp
+        - class: TSSigAnaRecord
+          module_path: rdagent.scenarios.qlib.record.TSSignalRecord
           kwargs: 
             ana_long_short: False
             ann_scaler: 252

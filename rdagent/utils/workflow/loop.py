@@ -259,6 +259,34 @@ class LoopBase:
                         raise self.LoopResumeError(msg) from e
                     else:
                         raise  # re-raise unhandled exceptions
+                # 通过重新设计因子之间相关性的计算公式（截面IC -> 时序IC），问题得到解决，不用直接跳过了
+
+                # #########################
+                # except Exception as e:
+                #     if isinstance(e, self.skip_loop_error):
+                #         # 原来是：直接跳到最后一步 record，等于整轮 skip
+                #         # logger.warning(f"Skip loop {li} due to {e}")
+                #         # next_step_idx = len(self.steps) - 1
+
+                #         # 改成：只标记异常，但仍然让这轮继续往下走
+                #         logger.warning(
+                #             f"Loop {li}, Step {si} ({name}) raised {type(e).__name__}: {e}. "
+                #             "Keep running following steps and force this loop to be recorded."
+                #         )
+                #         self.loop_prev_out[li][name] = None
+                #         self.loop_prev_out[li][self.EXCEPTION_KEY] = e
+                #         # 注意：这里不改 next_step_idx，保持默认的 si + 1
+                #         # step_forward 也保持 True
+                #     elif isinstance(e, self.withdraw_loop_error):
+                #         logger.warning(f"Withdraw loop {li} due to {e}")
+                #         self.withdraw_loop(li)
+                #         step_forward = False
+
+                #         msg = "We have reset the loop instance, stop all the routines and resume."
+                #         raise self.LoopResumeError(msg) from e
+                #     else:
+                #         raise  # re-raise unhandled exceptions
+                # #########################
                 finally:
                     # No matter the execution succeed or not, we have to finish the following steps
 

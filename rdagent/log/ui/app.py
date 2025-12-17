@@ -451,12 +451,28 @@ def summary_window():
                 else:
                     df = pd.DataFrame(state.metric_series)
                 if show_true_only and len(state.hypotheses) >= len(state.metric_series):
+                    def is_success_idx(idx: str) -> bool:
+                        # Baseline 永远保留
+                        if idx == "Baseline":
+                            return True
+
+                        # 只对 "Round X" 这种格式解析
+                        if idx.startswith("Round "):
+                            try:
+                                round_id = int(idx.split("Round ")[1])
+                            except ValueError:
+                                return False
+                            # 用这一轮的决策
+                            return state.h_decisions[round_id]
+
+                        # 其他（比如 "Alpha Base"）默认不算“成功轮次”
+                        return False
+
                     if state.alpha_baseline_metrics is not None:
-                        selected = ["Alpha Base"] + [
-                            i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]
-                        ]
+                        selected = ["Alpha Base"] + [i for i in df.index if is_success_idx(i)]
                     else:
-                        selected = [i for i in df.index if i == "Baseline" or state.h_decisions[int(i[6:])]]
+                        selected = [i for i in df.index if is_success_idx(i)]
+
                     df = df.loc[selected]
                 if df.shape[0] == 1:
                     st.table(df.iloc[0])

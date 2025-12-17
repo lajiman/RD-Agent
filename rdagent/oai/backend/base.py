@@ -13,9 +13,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple, Type, Union, cast
 
+from jsonschema import ValidationError
 import pytz
 from pydantic import BaseModel, TypeAdapter
-
+from pydantic_core import ValidationError as PydanticCoreValidationError
+from pydantic import ValidationError as PydanticValidationError
 from rdagent.core.exception import PolicyError
 from rdagent.core.utils import LLM_CACHE_SEED_GEN, SingletonBaseClass
 from rdagent.log import LogColors
@@ -632,9 +634,46 @@ class APIBackend(ABC):
         if response_format == {"type": "json_object"} or json_target_type:
             parser = JSONParser(add_json_in_prompt=add_json_in_prompt)
             all_response = parser.parse(all_response)
+            # if json_target_type:
+            #     # deepseek will enter this branch. And seems like gpt-5.1 enter this branch too.
+            #     TypeAdapter(json_target_type).validate_json(all_response)
             if json_target_type:
-                # deepseek will enter this branch
-                TypeAdapter(json_target_type).validate_json(all_response)
+                try:
+                    TypeAdapter(json_target_type).validate_json(all_response)
+                except (PydanticCoreValidationError, PydanticValidationError) as e:
+                    logger.warning(
+                        f"{LogColors.YELLOW}[Pydantic] ValidationError when validating response to "
+                        f"{json_target_type}. Trying to stringify dict/list values...{LogColors.END}",
+                    )
+
+                    # ---- 1) 先把 all_response 变成 Python dict ----
+                    if isinstance(all_response, str):
+                        try:
+                            obj = json.loads(all_response)
+                        except Exception:
+                            # 如果连 JSON 都 parse 不了，说明这不是 schema 问题，直接抛
+                            raise
+                    elif isinstance(all_response, dict):
+                        obj = all_response
+                    else:
+                        raise TypeError(
+                            f"Unexpected type for all_response: {type(all_response)}"
+                        )
+
+                    # ---- 2) 在 dict 上做 stringify 容错 ----
+                    fixed = {}
+                    for k, v in obj.items():
+                        if isinstance(v, (dict, list)):
+                            fixed[k] = json.dumps(v, ensure_ascii=False)
+                        else:
+                            fixed[k] = v
+
+                    # ---- 3) 再转回 JSON string，用 validate_json ----
+                    fixed_json = json.dumps(fixed, ensure_ascii=False)
+                    TypeAdapter(json_target_type).validate_json(fixed_json)
+
+                    # ---- 4) 统一回写为“解析后的 dict”，供后续使用 ----
+                    all_response = json.dumps(fixed, ensure_ascii=False)
 
         if response_format is not None:
             if not isinstance(response_format, dict) and issubclass(response_format, BaseModel):

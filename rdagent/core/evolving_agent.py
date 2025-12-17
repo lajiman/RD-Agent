@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import nullcontext
 from typing import Any, Generic, TypeVar
+import dotenv
+import os
 
 from filelock import FileLock
 from tqdm import tqdm
@@ -20,6 +22,16 @@ class EvoAgent(ABC, Generic[ASpecificEvaluator, ASpecificEvolvableSubjects]):
 
     def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
+        dotenv.load_dotenv()
+        env_max_loop = os.getenv("CoSTEER_MAX_LOOP")
+        if env_max_loop is None:
+            env_max_loop = os.getenv("FACTOR_CoSTEER_MAX_LOOP")
+        if env_max_loop:
+            try:
+                self.max_loop = int(env_max_loop)
+                logger.info(f"[CoSTEER] Override max_loop from env: {env_max_loop}")
+            except ValueError:
+                logger.warning(f"[CoSTEER] Invalid CoSTEER max_loop in env: {env_max_loop}, ignoring")
         self.evolving_strategy = evolving_strategy
 
     @abstractmethod
@@ -66,6 +78,8 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
         self.knowledge_self_gen = knowledge_self_gen
         self.enable_filelock = enable_filelock
         self.filelock_path = filelock_path
+        # logger.info(f"[RAGEvoAgent] __init__ received max_loop={self.max_loop}")
+        # raise NotImplementedError("RAGEvoAgent __init__ is not implemented yet")
 
     def multistep_evolve(
         self,
@@ -112,4 +126,4 @@ class RAGEvoAgent(EvoAgent[RAGEvaluator, ASpecificEvolvableSubjects], Generic[AS
                 # 7. check if all tasks are completed
                 if self.with_feedback and es.feedback is not None and es.feedback.finished():
                     logger.info("All tasks in evolving subject have been completed.")
-                    break
+                    # break

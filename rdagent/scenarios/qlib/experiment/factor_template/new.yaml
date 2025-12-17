@@ -1,0 +1,160 @@
+qlib_init:
+    provider_uri: "~/.qlib/qlib_data/soy_continuous"
+    region: us
+
+market: &market all         
+benchmark: &benchmark HP_CME_SOY  
+
+data_handler_config: &data_handler_config
+    start_time: 2010-01-01
+    end_time: 2025-01-01
+    fit_start_time: 2010-01-01
+    fit_end_time: 2018-12-31
+    instruments: *market
+
+    # infer_processors 对 feature 做预处理
+    infer_processors:
+        # 如果你以后打算用 Alpha158 那套字段，可以保留 FilterCol；
+        # 这里先简单一点：不做 FilterCol，只做归一化 + 填充
+        - class: RobustZScoreNorm
+          kwargs:
+              fields_group: feature
+              clip_outlier: true
+        - class: Fillna
+          kwargs:
+              fields_group: feature
+
+    learn_processors:
+        - class: DropnaLabel
+        - class: CSRankNorm
+          kwargs:
+              fields_group: label
+
+    # ====== Label：这里改成你熟悉的定义 ======
+    # 例：1 日前瞻收益，和你之前项目里的 NEXT_RET 类似
+    # 你也可以改成 7 日、30 日平均收益
+    label: ["Ref($close, -2) / Ref($close, -1) - 1"] 
+    # 如果你想要 7 日平均收益，可以写：
+    # label: ["Mean(Ref($close, -1) / $close - 1, 7)"]
+
+# ========= 4. 回测配置（这里策略还是股票那套 TopK，多空不做太复杂） =========
+port_analysis_config: &port_analysis_config
+    strategy:
+        class: TopkDropoutStrategy
+        module_path: qlib.contrib.strategy
+        kwargs:
+            signal: <PRED>
+            topk: 10       # 期货主连标的数不多，可以适当调小
+            n_drop: 2
+    backtest:
+        start_time: 2019-01-01
+        end_time: 2025-01-01
+        account: 10000000
+        benchmark: *benchmark
+        exchange_kwargs:
+            # 这些参数是股票风格的，你可以先不管，后面有精力再根据期货特性微调
+            limit_threshold: 0.095
+            deal_price: close
+            open_cost: 0.0005
+            close_cost: 0.0015
+            min_cost: 5
+
+# ========= 5. 任务定义：改成 DataHandlerLP，更方便用 open_interest 等自定义因子 =========
+task:
+    model:
+        class: LGBModel
+        module_path: qlib.contrib.model.gbdt
+        kwargs:
+            loss: mse
+            colsample_bytree: 0.8879
+            learning_rate: 0.2
+            subsample: 0.8789
+            lambda_l1: 205.6999
+            lambda_l2: 580.9768
+            max_depth: 8
+            num_leaves: 210
+            num_threads: 20
+
+    dataset:
+        class: DatasetH
+        module_path: qlib.data.dataset
+        kwargs:
+            handler:
+                # ⭐ 和原版不同：这里改用 DataHandlerLP，而不是 Alpha158
+                class: DataHandlerLP
+                module_path: qlib.data.dataset.handler
+                kwargs:
+                    # 直接复用上面的 data_handler_config（时间区间/处理器/label）
+                    # 但这里要额外给 feature 配置
+                    start_time: *data_handler_config.start_time
+                    end_time: *data_handler_config.end_time
+                    fit_start_time: *data_handler_config.fit_start_time
+                    fit_end_time: *data_handler_config.fit_end_time
+                    instruments: *data_handler_config.instruments
+                    infer_processors: *data_handler_config.infer_processors
+                    learn_processors: *data_handler_config.learn_processors
+                    data_loader:
+                        class: QlibDataLoader
+                        module_path: qlib.data.dataset.loader
+                        kwargs:
+                            config:
+                                # ========= 这里定义你的特征：包含 open_interest / 时间变量 =========
+                                # expressions: Qlib 因子式
+                                # names:      对应的列名
+                                feature:
+                                    - [
+                                        "$open",
+                                        "$high",
+                                        "$low",
+                                        "$close",
+                                        "$volume",
+                                        "$open_interest",          # 期货持仓量
+                                        "Ref($close, 1)",          # 昨收
+                                        "($close / Ref($close, 1) - 1)",  # 1 日收益
+                                        "Mean($open_interest, 5)", # 5 日均持仓
+                                        "Mean($open_interest, 20)",
+                                        "($open_interest / Ref($open_interest, 1) - 1)", # 持仓变化
+                                        "$month",
+                                        "$dayofweek",
+                                        "$dayofyear"
+                                      ]
+                                    - [
+                                        "OPEN",
+                                        "HIGH",
+                                        "LOW",
+                                        "CLOSE",
+                                        "VOLUME",
+                                        "OPEN_INTEREST",
+                                        "CLOSE_L1",
+                                        "RET_1D",
+                                        "OI_MEAN_5",
+                                        "OI_MEAN_20",
+                                        "OI_CHG_1D",
+                                        "MONTH",
+                                        "DAYOFWEEK",
+                                        "DAYOFYEAR"
+                                      ]
+                                label:
+                                    - *data_handler_config.label   # 复用上面的 label 定义
+                                    - ["LABEL_1D_RET"]
+
+            segments:
+                train: [2010-01-01, 2018-12-31]
+                valid: [2019-01-01, 2020-12-31]
+                test:  [2021-01-01, 2025-01-01]
+
+    record:
+        - class: SignalRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+            model: <MODEL>
+            dataset: <DATASET>
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+            ana_long_short: False
+            ann_scaler: 252
+        - class: PortAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+            config: *port_analysis_config

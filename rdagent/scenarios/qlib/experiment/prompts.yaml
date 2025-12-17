@@ -38,9 +38,11 @@ qlib_factor_background: |-
   Each number in the factor represents a physics value to an instrument on a day.
   User will train a model to predict the next several days return based on the factor values of the previous days.
 
-  In this scenario, you are not working solely from raw OHLCV. A baseline feature table is already provided and always available as model inputs. These baseline features are meaningful financial signals and should be treated as semantic building blocks when designing new factors.
+  In this scenario, you can work on raw OHLCV. A baseline feature table is already provided and always available as model inputs. These baseline features are meaningful financial signals and can also be treated as semantic building blocks when designing new factors.
 
   The key baseline feature categories include:
+  - **RAW price features**: open, high, low, close, volume  
+    Fundamental market data capturing price levels and trading activity.
 
   - **Calendar / seasonality features**: year, month, dayofweek, dayofyear  
     Capture seasonal cycles, weekday effects, and time-based structure.
@@ -63,16 +65,12 @@ qlib_factor_background: |-
   - **Momentum-related features**: PMOM5, PMOM10, PMOM20, VMOM5  
     Reflect short- and medium-term momentum behavior in price and volume.
 
-  These baseline features are already computed and can be directly used, combined, or transformed. New factors should meaningfully utilize these signals rather than duplicating them or relying only on raw fields such as close, volume, or calendar variables.
+  These baseline features are already computed and can be directly used, combined, or transformed. New factors should meaningfully utilize these signals rather than duplicating them.
 
-  In the soybean futures time-series environment, several categories of inputs naturally carry structural information that can enhance factor design when appropriate. These inputs are **not required** in every factor, but they frequently provide meaningful signals and can improve expressiveness when incorporated through transformations or interactions:
-    
+  In the soybean futures time-series environment, unlike the stock market environment, several categories of inputs naturally carry structural information that can enhance factor design when appropriate. These inputs are **not required** in every factor, but they frequently provide meaningful signals and can improve expressiveness when incorporated through transformations or interactions:
     - **Open Interest (open_interest)** often reflects participation cycles, crowding, liquidity conditions, and speculative versus commercial positioning. Combining OI-related features with trend, volatility, or momentum signals can reveal hidden state transitions not visible in price alone.
-    
     - **Timing variables (year, month, dayofweek, dayofyear)** capture seasonal and calendar-linked behavioral patterns inherent in agricultural futures. These variables can be used to condition or modulate other signals (e.g., volatility, residual trend deviation, or momentum), enabling factors to adapt to cyclical market structure.
     
-    - **Volatility and dispersion features** (such as WVMA5, STD5, RESI10) help identify regime changes and uncertainty spikes. Interacting volatility features with momentum, correlation, or open-interest signals often produces non-linear insights into shifting risk environments.
-
   The factor is defined in the following parts:
   1. Name: The name of the factor.
   2. Description: The description of the factor.

@@ -260,6 +260,23 @@ class FactorFBWorkspace(FBWorkspace):
                 for w in (5, 20, 60):
                     df[f"$WVMA{w}"] = act.rolling(w).std() / (act.rolling(w).mean() + eps)
 
+                # ========== Loop-1 derived factors (write back as columns) ==========
+                # 1) OIMOM20_vol_scaled_VSTD5 = OIMOM20 / (1 + VSTD5)
+                df["$OIMOM20_vol_scaled_VSTD5"] = df["$OIMOM20"] / (1.0 + df["$VSTD5"])
+
+                # 2) PMOM5_vol_scaled_STD5 = PMOM5 / (1 + STD5)
+                df["$PMOM5_vol_scaled_STD5"] = df["$PMOM5"] / (1.0 + df["$STD5"])
+
+                # 3) CORR20_vol_scaled_WVMA5 = CORR20 / (1 + WVMA5)
+                df["$CORR20_vol_scaled_WVMA5"] = df["$CORR20"] / (1.0 + df["$WVMA5"])
+
+                # 4) KLOW_OI_pressure = KLOW / (1 + open_interest)
+                df["$KLOW_OI_pressure"] = df["$KLOW"] / (1.0 + df["$open_interest"])
+
+                # 5) VMOM5_tanh_squash = tanh(gamma_5 * VMOM5 / (1 + VSTD5)), gamma_5 = 1.0
+                gamma_5 = 1.0
+                df["$VMOM5_tanh_squash"] = np.tanh(gamma_5 * (df["$VMOM5"] / (1.0 + df["$VSTD5"])))
+                
                 # 回写到 daily_pv.h5
                 df.to_hdf(h5_path, key="data", mode="w")
 

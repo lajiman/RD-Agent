@@ -6,73 +6,32 @@ market: &market all
 benchmark: &benchmark HP_CME_SOY  
 
 data_handler_config: &data_handler_config
-    start_time: 2002-01-01
-    end_time: 2025-01-01
-    instruments: *market
-    data_loader:
-        class: NestedDataLoader
-        kwargs:
-            dataloader_l:
-                - class: qlib.contrib.data.loader.Alpha158DL
-                  kwargs:
-                    config:
-                        label: 
-                            - ["Ref($close, -8)/Ref($close, -1) - 1"]
-                            - ["LABEL0"]
-                        feature:
-                        # - ["Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
-                        #    "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",
-                        #    "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 5)", "Corr($close, Log($volume+1), 10)",
-                        #    "Ref($close, 60)/$close", "Resi($close, 10)/$close", "Std($volume, 5)/($volume+1e-12)",
-                        #    "Rsquare($close, 60)", "Corr($close, Log($volume+1), 60)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
-                        #    "Std($close, 5)/$close", "Rsquare($close, 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
-                        #    "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close, Log($volume+1), 20)",
-                        #    "(Less($open, $close)-$low)/$open",
-                        #    "($close/Ref($close, 5)-1)",   "($close/Ref($close, 10)-1)",  "($close/Ref($close, 20)-1)",
-                        #    "($volume/Ref($volume, 5)-1)", "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 20)-1)"]
-                        # - ["RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
-                        #    "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
-                        #    "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW",
-                        #    "PMOM5", "PMOM10", "PMOM20",
-                        #    "VMOM5", "OIMOM5", "OIMOM20"]
+  start_time: 2002-01-01
+  end_time: 2025-01-01
+  instruments: *market
+  data_loader:
+    class: NestedDataLoader
+    module_path: qlib.data.dataset.loader
+    kwargs:
+      dataloader_l:
+        # 1) Alpha158DL：只产 label（feature 留空占位）
+        - class: Alpha158DL
+          module_path: qlib.contrib.data.loader
+          kwargs:
+            config:
+              label:
+                - ["Ref($close, -8)/Ref($close, -1) - 1"]
+                - ["LABEL0"]
+              feature:
+                - ["$close"]
+                - ["_DUMMY_CLOSE"]
 
-                        - ["($close/Ref($close, 5)-1)", "($close/Ref($close, 10)-1)", "($close/Ref($close, 20)-1)", "($close/Ref($close, 60)-1)",
-                           "($volume/Ref($volume, 5)-1)", "($volume/Ref($volume, 10)-1)", "($volume/Ref($volume, 20)-1)", "($volume/Ref($volume, 60)-1)",
-                           "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 10)-1)", "($open_interest/Ref($open_interest, 20)-1)", "($open_interest/Ref($open_interest, 60)-1)",
-                           "Resi($close, 10)/$close", "Resi($close, 20)/$close", "Rsquare($close, 5)", "Rsquare($close, 10)", "Rsquare($close, 20)", "Rsquare($close, 60)",
-                           "Std($close, 5)/$close", "Std($close, 10)/$close", "Std($close, 20)/$close", "Std($close, 60)/$close", "Std($volume, 5)/($volume+1e-12)", "Std($volume, 20)/($volume+1e-12)",
-                           "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 20)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 20)+1e-12)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
-                           "Corr($close, Log($volume+1), 10)", "Corr($close, Log($volume+1), 20)", "Corr($close, Log($volume+1), 60)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
-                           "($high-$low)/$open", "(Less($open, $close)-$low)/$open",
-                           "$OIMOM20/(1+$VSTD5)", "$PMOM5/(1+$STD5)", "$CORR20/(1+$WVMA5)", "$KLOW/(1+$open_interest)", "($VMOM5/(1+$VSTD5))/(1+Abs($VMOM5/(1+$VSTD5)))"]
-                        - ["PMOM5", "PMOM10", "PMOM20", "PMOM60", 
-                           "VMOM5", "VMOM10", "VMOM20", "VMOM60",
-                           "OIMOM5", "OIMOM10", "OIMOM20", "OIMOM60",
-                           "RESI10", "RESI20", "RSQR5", "RSQR10", "RSQR20", "RSQR60",
-                           "STD5", "STD10", "STD20", "STD60", "VSTD5", "VSTD20",
-                           "WVMA5", "WVMA20", "WVMA60",
-                           "CORR10", "CORR20", "CORR60", "CORD10", "CORD20", "CORD60",
-                           "KLEN", "KLOW",
-                           "OIMOM20_vol_scaled_VSTD5", "PMOM5_vol_scaled_STD5", "CORR20_vol_scaled_WVMA5", "KLOW_OI_pressure", "VMOM5_tanh_squash"]
-
-                        # - ["$open", "$close", "$high", "$low", "$volume", "$open_interest", "$year", "$month", "$dayofweek", "$dayofyear", "Resi($close, 5)/$close", "Std(Abs($close/Ref($close, 1)-1)*$volume, 5)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 5)+1e-12)",
-                        #    "Rsquare($close, 5)", "($high-$low)/$open", "Rsquare($close, 10)", "Corr($close, Log($volume+1), 5)",
-                        #    "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 5)", "Corr($close, Log($volume+1), 10)",
-                        #    "Ref($close, 60)/$close", "Resi($close, 10)/$close", "Std($volume, 5)/($volume+1e-12)",
-                        #    "Rsquare($close, 60)", "Corr($close, Log($volume+1), 60)", "Std(Abs($close/Ref($close, 1)-1)*$volume, 60)/(Mean(Abs($close/Ref($close, 1)-1)*$volume, 60)+1e-12)",
-                        #    "Std($close, 5)/$close", "Rsquare($close, 20)", "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 60)",
-                        #    "Corr($close/Ref($close, 1), Log($volume/Ref($volume, 1)+1), 10)", "Corr($close, Log($volume+1), 20)",
-                        #    "(Less($open, $close)-$low)/$open",
-                        #    "($close/Ref($close, 5)-1)",   "($close/Ref($close, 10)-1)",  "($close/Ref($close, 20)-1)",
-                        #    "($volume/Ref($volume, 5)-1)", "($open_interest/Ref($open_interest, 5)-1)", "($open_interest/Ref($open_interest, 20)-1)"]
-                        # - ["OPEN", "CLOSE", "HIGH", "LOW", "VOLUME", "OI", "YR", "MON", "DOFW", "DOFY", "RESI5", "WVMA5", "RSQR5", "KLEN", "RSQR10", "CORR5", "CORD5", "CORR10", 
-                        #    "ROC60", "RESI10", "VSTD5", "RSQR60", "CORR60", "WVMA60", "STD5", 
-                        #    "RSQR20", "CORD60", "CORD10", "CORR20", "KLOW",
-                        #    "PMOM5", "PMOM10", "PMOM20",
-                        #    "VMOM5", "OIMOM5", "OIMOM20"]
-                - class: qlib.data.dataset.loader.StaticDataLoader
-                  kwargs:
-                    config: "combined_factors_df.parquet"
+        # 2) AutoFeatureStaticDataLoader：自动从 parquet 取所有 feature
+        - class: AutoFeatureStaticDataLoader
+          module_path: rdagent.scenarios.qlib.dataloader.autoloader
+          kwargs:
+            config: "combined_factors_df.parquet"
+            drop_cols: ["_DUMMY_CLOSE", "LABEL0"]
     infer_processors:
       - class: RobustZScoreNorm
         kwargs:

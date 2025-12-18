@@ -173,112 +173,112 @@ class FactorFBWorkspace(FBWorkspace):
 
             #   - **Momentum-related features**: $PMOM5, $PMOM10, $PMOM20, $VMOM5  
             #     Reflect short- and medium-term momentum behavior in price and volume.
-            import numpy as np
+            # import numpy as np
 
-            h5_path = self.workspace_path / "daily_pv.h5"
-            if h5_path.exists():
-                df = pd.read_hdf(h5_path, key="data")
+            # h5_path = self.workspace_path / "daily_pv.h5"
+            # if h5_path.exists():
+            #     df = pd.read_hdf(h5_path, key="data")
 
-                eps = 1e-12
+            #     eps = 1e-12
 
-                # ========= RESI: Rolling residual ratio ==========
-                def _resi(x):
-                    n = len(x)
-                    t = np.arange(n)
-                    coef = np.polyfit(t, x, 1)
-                    pred = coef[0] * t + coef[1]
-                    return (x[-1] - pred[-1]) / (x[-1] + eps)
+            #     # ========= RESI: Rolling residual ratio ==========
+            #     def _resi(x):
+            #         n = len(x)
+            #         t = np.arange(n)
+            #         coef = np.polyfit(t, x, 1)
+            #         pred = coef[0] * t + coef[1]
+            #         return (x[-1] - pred[-1]) / (x[-1] + eps)
 
-                # 仅保留你新清单中的 RESI10/RESI20
-                df["$RESI10"] = df["$close"].rolling(10).apply(_resi, raw=True)
-                df["$RESI20"] = df["$close"].rolling(20).apply(_resi, raw=True)
+            #     # 仅保留你新清单中的 RESI10/RESI20
+            #     df["$RESI10"] = df["$close"].rolling(10).apply(_resi, raw=True)
+            #     df["$RESI20"] = df["$close"].rolling(20).apply(_resi, raw=True)
 
-                # ========== RSQUARE ==========
-                def _rsq(x):
-                    n = len(x)
-                    t = np.arange(n)
-                    coef = np.polyfit(t, x, 1)
-                    pred = coef[0] * t + coef[1]
-                    ss_res = ((x - pred) ** 2).sum()
-                    ss_tot = ((x - x.mean()) ** 2).sum() + eps
-                    return 1 - ss_res / ss_tot
+            #     # ========== RSQUARE ==========
+            #     def _rsq(x):
+            #         n = len(x)
+            #         t = np.arange(n)
+            #         coef = np.polyfit(t, x, 1)
+            #         pred = coef[0] * t + coef[1]
+            #         ss_res = ((x - pred) ** 2).sum()
+            #         ss_tot = ((x - x.mean()) ** 2).sum() + eps
+            #         return 1 - ss_res / ss_tot
 
-                df["$RSQR5"]  = df["$close"].rolling(5).apply(_rsq, raw=True)
-                df["$RSQR10"] = df["$close"].rolling(10).apply(_rsq, raw=True)
-                df["$RSQR20"] = df["$close"].rolling(20).apply(_rsq, raw=True)
-                df["$RSQR60"] = df["$close"].rolling(60).apply(_rsq, raw=True)
+            #     df["$RSQR5"]  = df["$close"].rolling(5).apply(_rsq, raw=True)
+            #     df["$RSQR10"] = df["$close"].rolling(10).apply(_rsq, raw=True)
+            #     df["$RSQR20"] = df["$close"].rolling(20).apply(_rsq, raw=True)
+            #     df["$RSQR60"] = df["$close"].rolling(60).apply(_rsq, raw=True)
 
-                # ========== KLEN / KLOW ==========
-                df["$KLEN"] = (df["$high"] - df["$low"]) / (df["$open"] + eps)
-                df["$KLOW"] = (np.minimum(df["$open"], df["$close"]) - df["$low"]) / (df["$open"] + eps)
+            #     # ========== KLEN / KLOW ==========
+            #     df["$KLEN"] = (df["$high"] - df["$low"]) / (df["$open"] + eps)
+            #     df["$KLOW"] = (np.minimum(df["$open"], df["$close"]) - df["$low"]) / (df["$open"] + eps)
 
-                # ========== PMOM (5/10/20/60) ==========
-                df["$PMOM5"]  = df["$close"] / df["$close"].shift(5)  - 1
-                df["$PMOM10"] = df["$close"] / df["$close"].shift(10) - 1
-                df["$PMOM20"] = df["$close"] / df["$close"].shift(20) - 1
-                df["$PMOM60"] = df["$close"] / df["$close"].shift(60) - 1
+            #     # ========== PMOM (5/10/20/60) ==========
+            #     df["$PMOM5"]  = df["$close"] / df["$close"].shift(5)  - 1
+            #     df["$PMOM10"] = df["$close"] / df["$close"].shift(10) - 1
+            #     df["$PMOM20"] = df["$close"] / df["$close"].shift(20) - 1
+            #     df["$PMOM60"] = df["$close"] / df["$close"].shift(60) - 1
 
-                # ========== VMOM (5/10/20/60) ==========
-                df["$VMOM5"]  = df["$volume"] / df["$volume"].shift(5)  - 1
-                df["$VMOM10"] = df["$volume"] / df["$volume"].shift(10) - 1
-                df["$VMOM20"] = df["$volume"] / df["$volume"].shift(20) - 1
-                df["$VMOM60"] = df["$volume"] / df["$volume"].shift(60) - 1
+            #     # ========== VMOM (5/10/20/60) ==========
+            #     df["$VMOM5"]  = df["$volume"] / df["$volume"].shift(5)  - 1
+            #     df["$VMOM10"] = df["$volume"] / df["$volume"].shift(10) - 1
+            #     df["$VMOM20"] = df["$volume"] / df["$volume"].shift(20) - 1
+            #     df["$VMOM60"] = df["$volume"] / df["$volume"].shift(60) - 1
 
-                # ========== OIMOM (5/10/20/60) ==========
-                df["$OIMOM5"]  = df["$open_interest"] / df["$open_interest"].shift(5)  - 1
-                df["$OIMOM10"] = df["$open_interest"] / df["$open_interest"].shift(10) - 1
-                df["$OIMOM20"] = df["$open_interest"] / df["$open_interest"].shift(20) - 1
-                df["$OIMOM60"] = df["$open_interest"] / df["$open_interest"].shift(60) - 1
+            #     # ========== OIMOM (5/10/20/60) ==========
+            #     df["$OIMOM5"]  = df["$open_interest"] / df["$open_interest"].shift(5)  - 1
+            #     df["$OIMOM10"] = df["$open_interest"] / df["$open_interest"].shift(10) - 1
+            #     df["$OIMOM20"] = df["$open_interest"] / df["$open_interest"].shift(20) - 1
+            #     df["$OIMOM60"] = df["$open_interest"] / df["$open_interest"].shift(60) - 1
 
-                # ========== STD (price vol proxy, normalized by price) ==========
-                df["$STD5"]  = df["$close"].rolling(5).std()  / (df["$close"] + eps)
-                df["$STD10"] = df["$close"].rolling(10).std() / (df["$close"] + eps)
-                df["$STD20"] = df["$close"].rolling(20).std() / (df["$close"] + eps)
-                df["$STD60"] = df["$close"].rolling(60).std() / (df["$close"] + eps)
+            #     # ========== STD (price vol proxy, normalized by price) ==========
+            #     df["$STD5"]  = df["$close"].rolling(5).std()  / (df["$close"] + eps)
+            #     df["$STD10"] = df["$close"].rolling(10).std() / (df["$close"] + eps)
+            #     df["$STD20"] = df["$close"].rolling(20).std() / (df["$close"] + eps)
+            #     df["$STD60"] = df["$close"].rolling(60).std() / (df["$close"] + eps)
 
-                # ========== VSTD (volume vol proxy, normalized by volume) ==========
-                # 与你 YAML: Std($volume, N)/($volume+eps) 一致
-                df["$VSTD5"]  = df["$volume"].rolling(5).std()  / (df["$volume"] + eps)
-                df["$VSTD20"] = df["$volume"].rolling(20).std() / (df["$volume"] + eps)
+            #     # ========== VSTD (volume vol proxy, normalized by volume) ==========
+            #     # 与你 YAML: Std($volume, N)/($volume+eps) 一致
+            #     df["$VSTD5"]  = df["$volume"].rolling(5).std()  / (df["$volume"] + eps)
+            #     df["$VSTD20"] = df["$volume"].rolling(20).std() / (df["$volume"] + eps)
 
-                # ========== CORR (10/20/60) ==========
-                logv = np.log(df["$volume"] + 1)
-                df["$CORR10"] = df["$close"].rolling(10).corr(logv)
-                df["$CORR20"] = df["$close"].rolling(20).corr(logv)
-                df["$CORR60"] = df["$close"].rolling(60).corr(logv)
+            #     # ========== CORR (10/20/60) ==========
+            #     logv = np.log(df["$volume"] + 1)
+            #     df["$CORR10"] = df["$close"].rolling(10).corr(logv)
+            #     df["$CORR20"] = df["$close"].rolling(20).corr(logv)
+            #     df["$CORR60"] = df["$close"].rolling(60).corr(logv)
 
-                # ========== CORD (price ratio vs volume ratio, 10/20/60) ==========
-                pr = df["$close"] / df["$close"].shift(1)  # 与你原实现保持一致
-                vr = np.log(df["$volume"] / df["$volume"].shift(1) + 1)
-                df["$CORD10"] = pr.rolling(10).corr(vr)
-                df["$CORD20"] = pr.rolling(20).corr(vr)
-                df["$CORD60"] = pr.rolling(60).corr(vr)
+            #     # ========== CORD (price ratio vs volume ratio, 10/20/60) ==========
+            #     pr = df["$close"] / df["$close"].shift(1)  # 与你原实现保持一致
+            #     vr = np.log(df["$volume"] / df["$volume"].shift(1) + 1)
+            #     df["$CORD10"] = pr.rolling(10).corr(vr)
+            #     df["$CORD20"] = pr.rolling(20).corr(vr)
+            #     df["$CORD60"] = pr.rolling(60).corr(vr)
 
-                # ========== WVMA (5/20/60) ==========
-                # 你当前这个写法更像“(价量活动项)的 std/mean 比率”，与 YAML 中 WVMA 的用法一致，就保持该口径并补齐 20
-                act = (df["$close"] / df["$close"].shift(1) - 1).abs() * df["$volume"]
-                for w in (5, 20, 60):
-                    df[f"$WVMA{w}"] = act.rolling(w).std() / (act.rolling(w).mean() + eps)
+            #     # ========== WVMA (5/20/60) ==========
+            #     # 你当前这个写法更像“(价量活动项)的 std/mean 比率”，与 YAML 中 WVMA 的用法一致，就保持该口径并补齐 20
+            #     act = (df["$close"] / df["$close"].shift(1) - 1).abs() * df["$volume"]
+            #     for w in (5, 20, 60):
+            #         df[f"$WVMA{w}"] = act.rolling(w).std() / (act.rolling(w).mean() + eps)
 
-                # ========== Loop-1 derived factors (write back as columns) ==========
-                # 1) OIMOM20_vol_scaled_VSTD5 = OIMOM20 / (1 + VSTD5)
-                df["$OIMOM20_vol_scaled_VSTD5"] = df["$OIMOM20"] / (1.0 + df["$VSTD5"])
+            #     # ========== Loop-1 derived factors (write back as columns) ==========
+            #     # 1) OIMOM20_vol_scaled_VSTD5 = OIMOM20 / (1 + VSTD5)
+            #     df["$OIMOM20_vol_scaled_VSTD5"] = df["$OIMOM20"] / (1.0 + df["$VSTD5"])
 
-                # 2) PMOM5_vol_scaled_STD5 = PMOM5 / (1 + STD5)
-                df["$PMOM5_vol_scaled_STD5"] = df["$PMOM5"] / (1.0 + df["$STD5"])
+            #     # 2) PMOM5_vol_scaled_STD5 = PMOM5 / (1 + STD5)
+            #     df["$PMOM5_vol_scaled_STD5"] = df["$PMOM5"] / (1.0 + df["$STD5"])
 
-                # 3) CORR20_vol_scaled_WVMA5 = CORR20 / (1 + WVMA5)
-                df["$CORR20_vol_scaled_WVMA5"] = df["$CORR20"] / (1.0 + df["$WVMA5"])
+            #     # 3) CORR20_vol_scaled_WVMA5 = CORR20 / (1 + WVMA5)
+            #     df["$CORR20_vol_scaled_WVMA5"] = df["$CORR20"] / (1.0 + df["$WVMA5"])
 
-                # 4) KLOW_OI_pressure = KLOW / (1 + open_interest)
-                df["$KLOW_OI_pressure"] = df["$KLOW"] / (1.0 + df["$open_interest"])
+            #     # 4) KLOW_OI_pressure = KLOW / (1 + open_interest)
+            #     df["$KLOW_OI_pressure"] = df["$KLOW"] / (1.0 + df["$open_interest"])
 
-                # 5) VMOM5_tanh_squash = tanh(gamma_5 * VMOM5 / (1 + VSTD5)), gamma_5 = 1.0
-                gamma_5 = 1.0
-                df["$VMOM5_tanh_squash"] = np.tanh(gamma_5 * (df["$VMOM5"] / (1.0 + df["$VSTD5"])))
+            #     # 5) VMOM5_tanh_squash = tanh(gamma_5 * VMOM5 / (1 + VSTD5)), gamma_5 = 1.0
+            #     gamma_5 = 1.0
+            #     df["$VMOM5_tanh_squash"] = np.tanh(gamma_5 * (df["$VMOM5"] / (1.0 + df["$VSTD5"])))
                 
-                # 回写到 daily_pv.h5
-                df.to_hdf(h5_path, key="data", mode="w")
+            #     # 回写到 daily_pv.h5
+            #     df.to_hdf(h5_path, key="data", mode="w")
 
             execution_feedback = self.FB_EXECUTION_SUCCEEDED
             execution_success = False

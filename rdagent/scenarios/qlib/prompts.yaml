@@ -131,7 +131,7 @@ factor_hypothesis_specification: |-
     - Allowed replacements (preferred):
       - rolling/expanding statistics computed using only historical data, and preferably shifted:
         theta_t = rolling(W).quantile(q).shift(1) or expanding().quantile(q).shift(1)
-      - apply per-instrument unless explicitly justified otherwise.
+      - apply per-instrument (In our scenario only one instrument) unless explicitly justified otherwise.
       If a factor requires a threshold/centering constant, it must be defined in this causal form
 
 factor_experiment_output_format: |-

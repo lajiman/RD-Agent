@@ -47,22 +47,22 @@ qlib_factor_background: |-
   - **Calendar / seasonality features**: year, month, dayofweek, dayofyear  
     Capture seasonal cycles, weekday effects, and time-based structure.
 
-  - **Position / participation features**: open_interest, OIMOM5, OIMOM20  
+  - **Position / participation features**: open_interest, OIMOM5, OIMOM10, OIMOM20, OIMOM60  
     Reflect market participation, funding pressure, and crowding risk.
 
-  - **Price trend & deviation features**: RESI5, RESI10, RSQR5, RSQR10, RSQR20, RSQR60  
+  - **Price trend & deviation features**: RESI10, RESI20, RSQR5, RSQR10, RSQR20, RSQR60  
     Describe short- to long-term trend strength and deviations from trend.
 
-  - **Volatility & activity features**: WVMA5, WVMA60, VSTD5, STD5  
+  - **Volatility & activity features**: WVMA5, WVMA20, WVMA60, VSTD5, VSTD20, STD5, STD10, STD20, STD60  
     Represent volatility bursts and abnormal price–volume activity.
 
-  - **Price–volume relation features**: CORR5, CORR10, CORR20, CORR60, CORD5, CORD10, CORD60  
+  - **Price–volume relation features**: CORR10, CORR20, CORR60, CORD10, CORD20, CORD60  
     Measure how price interacts with volume or volume changes.
 
   - **K-line structure features**: KLEN, KLOW  
     Capture intraday reversal structure and swing amplitude.
 
-  - **Momentum-related features**: PMOM5, PMOM10, PMOM20, VMOM5  
+  - **Momentum-related features**: PMOM5, PMOM10, PMOM20, VMOM5, VMOM10, VMOM20, VMOM60
     Reflect short- and medium-term momentum behavior in price and volume.
 
   These baseline features are already computed and can be directly used, combined, or transformed. New factors should meaningfully utilize these signals rather than duplicating them.

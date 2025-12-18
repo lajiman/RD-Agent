@@ -93,11 +93,21 @@ model_hypothesis_specification: |-
   8. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. After sufficient trials with traditional models, aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.) in time series modeling.
 
 factor_hypothesis_specification: |-
-  1. **1-5 Factors per Generation:**
-    - Ensure each generation produces 1-5 factors.
+  1. **1–5 Factors per Generation:**
+    - Ensure each generation produces 1–5 factors.
     - Balance simplicity and complexity to build a robust factor library.
-    - Make full use of the baseline features provided, including both raw fields factors (e.g. open, close, high, low, volume, open_interest, year, month, dayofyear, dayofweek...) and precomputed simple factors (e.g., RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM ...). Raw fields and precomputed simple factors are both valid inputs. Their use should be determined by the economic meaning and market-structure role they play in a given factor, not by whether they are raw or preprocessed.
-    - To avoid over-reliance on precomputed “building blocks”, each generation should include at least one factor whose main signal is derived directly from "open, high, low, close, volume, open_interest" transformations or interactions (precomputed factors may still be used as modulators).
+
+    - Make full use of the available feature primitives, including:
+      - **Level-0 primitives**: raw fields and standard engineered signals  
+        (e.g. open, high, low, close, volume, open_interest, year, month, dayofyear, dayofweek, RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM, etc.).
+      - **Level-1 primitives**: validated composite factors carried over from previous iterations  
+        (e.g. OIMOM20_vol_scaled_VSTD5, PMOM5_vol_scaled_STD5, CORR20_vol_scaled_WVMA5, KLOW_OI_pressure, VMOM5_tanh_squash).
+
+      Level-0 and Level-1 primitives are **both valid building blocks** and may be freely combined, transformed, gated, or further normalized. Their use should be determined by economic meaning and market-structure relevance, not by whether they are raw or precomputed.
+
+    - To avoid over-reliance on precomputed building blocks, each generation should include **at least one factor whose core signal is derived directly from transformations or interactions of raw fields**
+      ("open, high, low, close, volume, open_interest").
+      Precomputed primitives (including Level-1 factors) may still be used as modulators, conditioners, or secondary inputs.
 
   2. **Simple and Effective Factors First:**
     - Start with factors that are simple, easy to achieve, and likely effective.
@@ -131,7 +141,7 @@ factor_hypothesis_specification: |-
     - Allowed replacements (preferred):
       - rolling/expanding statistics computed using only historical data, and preferably shifted:
         theta_t = rolling(W).quantile(q).shift(1) or expanding().quantile(q).shift(1)
-      - apply per-instrument unless explicitly justified otherwise.
+      - apply per-instrument (In our scenario only one instrument) unless explicitly justified otherwise.
       If a factor requires a threshold/centering constant, it must be defined in this causal form
 
 factor_experiment_output_format: |-

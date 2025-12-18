@@ -4,12 +4,14 @@ qlib.init(provider_uri="~/.qlib/qlib_data/soy_continuous", region="us")
 
 from qlib.data import D
 
+from rdagent.scenarios.qlib.experiment.factor_data_template.enrich_daily_py import enrich_daily_pv_h5
+
 instruments = ["HP_CME_SOY"]
 fields = ["$open", "$close", "$high", "$low", "$volume", "$factor", "$open_interest", "$year", "$month", "$dayofweek", "$dayofyear"]
 data = D.features(instruments, fields, freq="day").swaplevel().sort_index().loc["2002-01-01":].sort_index()
 
 data.to_hdf("./daily_pv_all.h5", key="data")
-
+enrich_daily_pv_h5("./daily_pv_all.h5", key="data")
 
 fields = ["$open", "$close", "$high", "$low", "$volume", "$factor", "$open_interest", "$year", "$month", "$dayofweek", "$dayofyear"]
 data = (
@@ -25,6 +27,7 @@ data = (
 )
 
 data.to_hdf("./daily_pv_debug.h5", key="data")
+enrich_daily_pv_h5("./daily_pv_debug.h5", key="data")
 
 
 

@@ -1,0 +1,51 @@
+factor_hypothesis_specification: |-
+  1. **1–5 Factors per Generation:**
+    - Ensure each generation produces 1–5 factors.
+    - Balance simplicity and complexity to build a robust factor library.
+
+    - Make full use of the available feature primitives, including:
+      - **Level-0 primitives**: raw fields and standard engineered signals  
+        (e.g. open, high, low, close, volume, open_interest, year, month, dayofyear, dayofweek, RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM, etc.).
+      - **Level-1 primitives**: validated composite factors carried over from previous iterations  
+        (e.g. OIMOM20_vol_scaled_VSTD5, PMOM5_vol_scaled_STD5, CORR20_vol_scaled_WVMA5, KLOW_OI_pressure, VMOM5_tanh_squash).
+
+      Level-0 and Level-1 primitives are **both valid building blocks** and may be freely combined, transformed, gated, or further normalized. Their use should be determined by economic meaning and market-structure relevance, not by whether they are raw or precomputed.
+
+    - To avoid over-reliance on precomputed building blocks, each generation should include **at least one factor whose core signal is derived directly from transformations or interactions of raw fields**
+      ("open, high, low, close, volume, open_interest").
+      Precomputed primitives (including Level-1 factors) may still be used as modulators, conditioners, or secondary inputs.
+
+  2. **Simple and Effective Factors First:**
+    - Start with factors that are simple, easy to achieve, and likely effective.
+    - Concisely explain why these factors are expected to work.
+    - Avoid complex or heavily layered constructions initially.
+
+  3. **Meaningful Combinations:**
+    - The notion of a “meaningful” factor or combination should be understood from the perspective of soybean futures market structure and economic.
+    - Each new factor must involve meaningful computation beyond a direct copy of an existing column. Available feature primitives may be freely used as inputs, provided the resulting factor introduces a clear transformation, interaction, or normalization.
+    - Combinations should not be arbitrary; they must admit a clear economic or statistical rationale within a futures market context. In particular, combinations should reflect interpretable interactions between different aspects of market structure (such as price dynamics, volatility, participation, or temporal context), rather than relying on mechanically applied functional forms or ad hoc feature mixing.
+    - Timing variables (year, month, dayofyear, dayofweek) play an important role in agricultural futures. They are optional; if used, avoid standalone hard calendar dummies and instead use them to condition or modulate other signals.
+    - Before proposing a new factor, briefly check whether its formulation is economically or structurally redundant with factors tested in previous iterations (e.g., pure renaming or algebraic rearrangements without a new economic interpretation). Window or parameter variations are acceptable when they represent a different time-scale or market regime perspective.
+
+  4. **Gradual Complexity Increase:**
+    - Introduce more complex factors (e.g. machine learning based factors, factors using multi-dimensional factor raw data, etc.) as more experimental results are gathered.
+    - This part has relatively low priority.
+
+  5. **New Directions and Optimizations:**
+    - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and start with simple factors again.
+    - If optimizing a specific type of factor, proceed from simple to complex.
+
+  6. Note
+    - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
+    - No matter how many factors you plan to generate, only reply with one set of hypothesis and reason. The hypothesis can include the proposal of multiple factors at the same time.
+    [No-Global-Stats Rule — Critical]
+    - Do NOT use any global / full-sample statistics across time (look-ahead), including:
+      - x.quantile(q), x.median(), x.mean(), x.std(), x.rank(), ... computed on the full history,
+      - thresholds/constants described as “in-sample”, “full history”, “whole sample”, “global”,
+      - any pooling over all time/instruments to set a fixed threshold.
+
+    - Allowed replacements (preferred):
+      - rolling/expanding statistics computed using only historical data, and preferably shifted:
+        theta_t = rolling(W).quantile(q).shift(1) or expanding().quantile(q).shift(1)
+      - apply per-instrument (In our scenario only one instrument) unless explicitly justified otherwise.
+      If a factor requires a threshold/centering constant, it must be defined in this causal form

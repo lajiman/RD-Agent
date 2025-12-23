@@ -1,0 +1,28 @@
+assets:
+  example_enrich_daily_py: add_factors/prompt_assets/example_enrich_daily_py.py
+  example_qlib_factor_background: add_factors/prompt_assets/example_qlib_factor_background.txt
+  example_factor_hypothesis_specification: add_factors/prompt_assets/example_factor_hypothesis_specification.txt
+
+generation:
+  qlib_factor_background:
+    instruction: |-
+      Update the qlib_factor_background block to reflect the newly added factors defined in CURRENT enrich_daily_py.py.
+      Follow the style, structure, and constraint framing shown in the EXAMPLE PACK.
+      Requirements:
+      - Treat newly added validated factors as Level-1 primitives and list them explicitly.
+      - Keep no-lookahead constraints intact and do not introduce global/full-sample statistics.
+      - Keep the writing concise, enforceable, and consistent with the example. Do not modify anything other than the factors unless absolutely necessary.
+
+    examples: |-
+      Optional notes you want appended after the example pack.
+
+  factor_hypothesis_specification:
+    instruction: |-
+      Update factor_hypothesis_specification to acknowledge newly added Level-1 primitives from CURRENT enrich_daily_py.py.
+      Follow the EXAMPLE PACK style.
+      Requirements:
+      - Treat newly added validated factors as Level-1 primitives and list them explicitly.
+      - Keep no-lookahead constraints intact and do not introduce global/full-sample statistics.
+      - Keep the writing concise, enforceable, and consistent with the example. Do not modify anything other than the factors unless absolutely necessary.
+    examples: |-
+      Optional notes you want appended after the example pack.

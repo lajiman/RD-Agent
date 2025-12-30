@@ -22,6 +22,7 @@ class EvoAgent(ABC, Generic[ASpecificEvaluator, ASpecificEvolvableSubjects]):
 
     def __init__(self, max_loop: int, evolving_strategy: EvolvingStrategy) -> None:
         self.max_loop = max_loop
+        # 之所以在这里读入，是因为 RDA 自带的环境变量设置无法生效
         dotenv.load_dotenv()
         env_max_loop = os.getenv("CoSTEER_MAX_LOOP")
         if env_max_loop is None:

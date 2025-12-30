@@ -1,4 +1,4 @@
-# RD-Agent/rdagent/scenarios/qlib/experiment/factor_data_template/enrich_daily_py.py
+# RD-Agent/rdagent/scenarios/qlib/utils/factor_primitives.py
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,11 +6,6 @@ from typing import Iterable, Optional
 import numpy as np
 import pandas as pd
 
-
-'''
-这段代码与 RD-Agent/rdagent/scenarios/qlib/experiment/factor_data_template/generate.py 配合使用，用于生成“高级因子”
-代码的逻辑很简单，相对解耦。想要什么因子，就添加相应的计算逻辑，最后被 enrich_daily_pv_h5 函数调用
-'''
 
 EPS = 1e-12
 
@@ -138,74 +133,6 @@ def _enrich_df_level1(df: pd.DataFrame) -> pd.DataFrame:
     df["$KLOW_OI_pressure"] = df["$KLOW"] * oi_rel
     # VMOM5_tanh_squash
     df["$VMOM5_tanh_squash"] = np.tanh(df["$VMOM5"] / (1.0 + df["$VSTD5"]))
-
-    # ============================================================
-    # New factors (minimal changes; appended here)
-    # ============================================================
-
-    # (1) KLOW_OI_momentum_filter
-    # s5 = tanh(lam * PMOM5); factor = KLOW_OI_pressure * s5
-    lam = 1.0
-    df["$KLOW_OI_momentum_filter"] = df["$KLOW_OI_pressure"] * np.tanh(lam * df["$PMOM5"])
-
-    # (2) OI_accel_VSTD20_smooth_horizon_blend
-    eps = 1e-8
-    q_short = 0.5 * df["$OIMOM5"] + 0.5 * df["$OIMOM10"]
-    q_medium = 0.5 * df["$OIMOM20"] + 0.5 * df["$OIMOM60"]
-    accel_blend = q_short - q_medium
-    df["$OI_accel_VSTD20_smooth_horizon_blend"] = -accel_blend / (df["$VSTD20"] + eps)
-
-    # (3) range_vol_efficiency5
-    window = 5
-    close = df["$close"]
-    high = df["$high"]
-    low = df["$low"]
-    close_shift = close.groupby(level="instrument", group_keys=False).shift(window)
-    r_5 = (close - close_shift) / (close_shift + eps)
-
-    daily_range = high - low
-    avg_range_5 = (
-        daily_range
-        .groupby(level="instrument", group_keys=False)
-        .rolling(window=window, min_periods=window)
-        .sum()
-        .reset_index(level=0, drop=True)
-        / window
-    )
-    e_5 = r_5 / (avg_range_5 + eps)
-    df["$range_vol_efficiency5"] = e_5 / (df["$STD5"] + eps)
-
-    # (4) Seasonal_CORR20_WVMA5_carry_adjusted
-    # requires $dayofyear in df columns
-    if "$dayofyear" in df.columns:
-        corr20 = df["$CORR20"].astype("float64")
-        wvma5 = df["$WVMA5"].astype("float64")
-        dayofyear = df["$dayofyear"].astype("float64")
-
-        hat_C = corr20 / (1.0 + wvma5)
-
-        mu_carry = 210.0
-        w_carry = 40.0
-        diff = np.abs(dayofyear - mu_carry)
-        d_tilde = np.minimum(diff, 365.0 - diff)
-        c_t = np.exp(- (d_tilde ** 2) / (2.0 * (w_carry ** 2)))
-
-        df["$Seasonal_CORR20_WVMA5_carry_adjusted"] = c_t * hat_C
-
-    # (5) Seasonal_OIMOM20_harvest_participation
-    # requires $dayofyear in df columns
-    if "$dayofyear" in df.columns:
-        d_t = df["$dayofyear"].astype("float64")
-        mu_harv = 280.0
-        w_harv = 40.0
-        raw_diff = np.abs(d_t - mu_harv)
-        wrapped_diff = 365.0 - raw_diff
-        d_tilde = np.minimum(raw_diff, wrapped_diff)
-        denom = 2.0 * (w_harv ** 2)
-        h_t = np.exp(-(d_tilde ** 2) / denom)
-        oimom20 = df["$OIMOM20"].astype("float64")
-        df["$Seasonal_OIMOM20_harvest_participation"] = h_t * oimom20
-
     return df
 
 

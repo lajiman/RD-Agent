@@ -149,6 +149,10 @@ class FactorFBWorkspace(FBWorkspace):
 
             self.link_all_files_in_folder_to_workspace(source_data_path, self.workspace_path)
 
+            # 修改代码的目的很清晰：将高阶因子硬编码到代码中。runtime 计算并不安全友好，但可以快速落地。
+            # 该流程已经被修改，现在会在实验之前，在 h5 文件中预先计算好这些高阶因子，供因子代码直接使用。参考RD-Agent/rdagent/scenarios/qlib/experiment/factor_data_template/generate.py和RD-Agent/rdagent/scenarios/qlib/experiment/factor_data_template/enrich_daily_py.py
+
+
             # ------------------------------
             # ★ 强制注入所有基础简单因子（最快速修复）
             # ------------------------------

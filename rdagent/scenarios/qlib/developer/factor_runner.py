@@ -43,6 +43,15 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
     - results in `mlflow`
     """
 
+    """
+    发生在整个 qlib running 阶段，RD-Agent/rdagent/scenarios/qlib/model/logging_lgbm.py、RD-Agent/rdagent/scenarios/qlib/record/TSSignalRecord.py 中的代码在这个阶段中被调用
+    用于处理因子数据的准备、去重、组合，以及调用 Qlib Docker 训练和回测
+    与 RD-Agent/rdagent/scenarios/qlib/model/logging_lgbm.py、RD-Agent/rdagent/scenarios/qlib/record/TSSignalRecord.py 相似的，该类也将截面IC调整为时序IC。不要混淆，区别在于：
+    1. RD-Agent/rdagent/scenarios/qlib/model/logging_lgbm.py 发生在模型训练阶段，记录单因子IC
+    2. RD-Agent/rdagent/scenarios/qlib/record/TSSignalRecord.py 发生在模型训练后，记录模型预测值的IC
+    3. 本类中的IC计算发生在因子发掘阶段。如果新生成的因子与已有因子高度相关（时序IC > 0.99），则会被去重删除
+    """
+
     def calculate_ic_cross_section(
         self, concat_feature: pd.DataFrame, SOTA_feature_column_size: int, new_feature_columns_size: int
     ) -> pd.Series:
@@ -60,10 +69,11 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
     def _to_datetime_index(self, df: pd.DataFrame) -> pd.DataFrame:
         if isinstance(df.index, pd.MultiIndex) and "datetime" in df.index.names:
             if "instrument" in df.index.names:
-                # 单标的：直接丢掉 instrument 这一层，避免层级/顺序问题
+                # 单标的：直接丢掉 instrument 这一层，以 datetime 为索引
                 df = df.reset_index("instrument", drop=True)
         return df.sort_index()
 
+    # TODO: 这个函数和上面的 _to_datetime_index 有点重复, 可以合并
     def _canon_index(self, df: pd.DataFrame) -> pd.DataFrame:
         if isinstance(df.index, pd.MultiIndex):
             names = list(df.index.names)
@@ -82,7 +92,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         )
 
         if n_instruments > 1:
-            # 你原来的多标的逻辑保持不动
+            # 原本的多标的逻辑
             concat_feature = pd.concat([SOTA_feature, new_feature], axis=1)
             IC_series = (
                 concat_feature.groupby("datetime")
@@ -111,13 +121,13 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
 
         SOTA_aligned, new_aligned = SOTA_feature.align(new_feature, join="inner", axis=0)
 
+        # debug因子为空的情况。现在不会报错
         if dbg and (len(SOTA_aligned) == 0 or len(new_aligned) == 0):
             print("[DEDUP][TS] align produced empty intersection.")
             print(f"  SOTA rows={len(SOTA_feature)}, new rows={len(new_feature)}")
             print(f"  SOTA index.names={getattr(SOTA_feature.index,'names',None)}")
             print(f"  new  index.names={getattr(new_feature.index,'names',None)}")
 
-        # 对齐后为空：宁可不去重（避免误删）
         if len(SOTA_aligned) == 0 or len(new_aligned) == 0:
             return new_feature
 
@@ -127,7 +137,6 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         corr = concat.corr()
         corr_block = corr.iloc[:n_old, n_old:]  # old x new
 
-        # 关键：NaN 当 0，避免“算不出相关性 -> 误删”
         IC_max = corr_block.abs().max(axis=0)
         IC_max_filled = IC_max.fillna(0.0)
         keep_mask = (IC_max_filled < 0.99)
@@ -141,6 +150,7 @@ class QlibFactorRunner(CachedRunner[QlibFactorExperiment]):
         )
 
         if need_print:
+            # debug 信息，同时也是重要 log
             print(f"[DEDUP][TS] rows(aligned)={len(SOTA_aligned)} old={len(old_cols)} new={len(new_cols)}")
             if IC_max.isna().any():
                 na_cols = list(IC_max[IC_max.isna()].index)

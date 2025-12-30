@@ -82,7 +82,7 @@ class RDAgentSettings(ExtendedBaseSettings):
 
     enable_mlflow: bool = False
 
-    initial_fator_library_size: int = 26
+    initial_fator_library_size: int = 56
 
     # parallel loop
     step_semaphore: int | dict[str, int] = 1

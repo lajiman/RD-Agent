@@ -1,0 +1,80 @@
+qlib_factor_background: |-
+  The factor is a characteristic or variable used in quantitative investment that can help explain the returns and risks of a portfolio or a single asset. Factors are used by investors to identify and exploit sources of excess returns, and they are central to many quantitative investment strategies. In this scenario, factors are defined on a single major futures contract (continuous front-month soybean futures) in a purely time-series setting, rather than on a cross-sectional equity universe.
+
+  Each factor value represents a numerical characteristic of the instrument on a given trading day.
+  The user will train a model to predict the next several days’ returns based on factor values observed over previous days.
+
+  In this scenario, you can work on raw OHLCV data. A baseline feature table is already provided and always available as model inputs. These baseline features are meaningful financial signals and can also be treated as semantic building blocks when designing new factors.
+
+  The key baseline feature categories include:
+
+  - **RAW price features (Level-0 primitives)**: open, high, low, close, volume  
+    Fundamental market data capturing price levels and trading activity.
+
+  - **Calendar / seasonality features (Level-0 primitives)**: year, month, dayofweek, dayofyear  
+    Capture seasonal cycles, weekday effects, and time-based structure.
+
+  - **Position / participation features (Level-0 primitives)**: open_interest, OIMOM5, OIMOM10, OIMOM20, OIMOM60  
+    Reflect market participation, funding pressure, and crowding risk.
+
+  - **Price trend & deviation features (Level-0 primitives)**: RESI10, RESI20, RSQR5, RSQR10, RSQR20, RSQR60  
+    Describe short- to long-term trend strength and deviations from trend.
+
+  - **Volatility & activity features (Level-0 primitives)**: WVMA5, WVMA20, WVMA60, VSTD5, VSTD20, STD5, STD10, STD20, STD60  
+    Represent volatility bursts and abnormal price–volume activity.
+
+  - **Price–volume relation features (Level-0 primitives)**: CORR10, CORR20, CORR60, CORD10, CORD20, CORD60  
+    Measure how price interacts with volume or volume changes.
+
+  - **K-line structure features (Level-0 primitives)**: KLEN, KLOW  
+    Capture intraday reversal structure and swing amplitude.
+
+  - **Momentum-related features (Level-0 primitives)**: PMOM5, PMOM10, PMOM20, PMOM60, VMOM5, VMOM10, VMOM20, VMOM60  
+    Reflect short- and medium-term momentum behavior in price and volume.
+
+  In addition to the raw and engineered baseline features above, the following **validated composite factors from prior experiments are also available as reusable semantic building blocks (Level-1 primitives)**. These factors should be treated as *first-class inputs*, equivalent in status to OHLCV, CORR, or PMOM, and may be freely combined, transformed, conditioned, or re-used when constructing new factors:
+
+  - **OIMOM20_vol_scaled_VSTD5**  
+    Medium-horizon open-interest momentum scaled by short-term volume volatility, capturing persistent participation shifts under relatively calm trading conditions.
+
+  - **PMOM5_vol_scaled_STD5**  
+    Short-term price momentum scaled by short-term price volatility (STD5), down-weighting momentum signals that occur in high-volatility regimes and preserving directionally meaningful momentum under more stable price conditions.
+
+  - **CORR20_vol_scaled_WVMA5**  
+    Medium-horizon price–volume correlation adjusted for short-term price–volume activity, highlighting structurally meaningful correlation regimes.
+
+  - **KLOW_OI_pressure**  
+    Lower-tail K-line structure scaled by open interest, capturing downside intraday pressure under crowded positioning.
+
+  - **VMOM5_tanh_squash**  
+    Short-term volume momentum normalized and squashed via a bounded nonlinearity to produce a stable directional volume-flow signal.
+
+  These Level-1 composite factors are **not terminal signals**. They may serve as intermediate representations and can be:
+    - combined with raw OHLCV or other baseline features,
+    - further scaled or normalized by volatility, activity, or participation measures,
+    - gated or conditioned on regime indicators (e.g., volatility, seasonality, or crowding),
+    - or used as inputs to higher-order meta-factors.
+
+  New factors should meaningfully utilize the available primitives (both Level-0 and Level-1) rather than trivially duplicating them.
+
+  In the soybean futures time-series environment, unlike the stock market environment, several categories of inputs naturally carry structural information that can enhance factor design when appropriate. These inputs are **not required** in every factor, but they frequently provide meaningful signals and can improve expressiveness when incorporated through transformations or interactions:
+
+    - **Open Interest (open_interest and OI-derived features)** often reflects participation cycles, crowding, liquidity conditions, and speculative versus commercial positioning. Combining OI-related signals with trend, volatility, or price-structure features can reveal state transitions not visible in price alone.
+
+    - **Timing variables (year, month, dayofweek, dayofyear)** capture seasonal and calendar-linked behavioral patterns inherent in agricultural futures. These variables may be used to condition or modulate other signals (e.g., momentum, volatility, or price–volume structure), enabling factors to adapt to cyclical market regimes.
+
+  A factor definition may include the following parts:
+  1. Name: The name of the factor.
+  2. Description: A concise explanation of the factor’s economic or statistical intuition.
+  3. Formulation: The mathematical or algorithmic construction of the factor.
+  4. Variables: The variables or functions used in the formulation.
+
+  Some factors may not require all parts above if not applicable.
+
+  Please explicitly specify all hyperparameters used in each factor, such as window sizes, lookback periods, thresholds, or regime definitions. Each factor should define exactly one static output derived from a fixed source signal. For example, a 10-day momentum and a 20-day momentum must be defined as two separate factors.
+
+  {% if runtime_environment is not none %}
+  ====== Runtime Environment ======
+  You have the following environment available to run code:
+  {{ runtime_environment }}
+  {% endif %}

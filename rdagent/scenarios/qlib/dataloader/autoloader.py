@@ -7,6 +7,10 @@ class AutoFeatureStaticDataLoader(StaticDataLoader):
     - reads parquet (same as StaticDataLoader)
     - automatically uses all numeric columns as features except excluded ones
     """
+    '''
+    为了添加新的因子时，不需要每次都手动指定 feature 列。因此实现这个 AutoFeatureStaticDataLoader 类
+    逻辑是：加载数据后，自动把所有数值型列作为 feature，排除掉 drop_cols 和 label_cols 指定的列
+    '''
     def __init__(self, config, drop_cols=None, label_cols=None, **kwargs):
         super().__init__(config=config, **kwargs)
         self.drop_cols = set(drop_cols or [])

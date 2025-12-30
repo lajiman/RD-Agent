@@ -92,43 +92,50 @@ model_hypothesis_specification: |-
   7. Sometimes, when training performance is poor, adjusting hyperparameters can also be an effective strategy for improvement.
   8. Use standard libraries for baseline models, but also explore custom architecture designs to investigate novel structures. After sufficient trials with traditional models, aim for innovation comparable to top-tier AI conferences (NeurIPS, ICLR, ICML, SIGKDD, etc.) in time series modeling.
 
+# 所有 factor_*  prompt 都与RDA的因子发掘功能有关
+# 其中 factor_hypothesis_specification 是最重要的，指导了什么样的因子可以被生成。其他prompts可以视情况修改或补充细节，一般不需要调整
+# 如果补充了新的初级因子或者高级因子，也需要在这个 factor_hypothesis_specification 里说明
+# 另外，由于 factor_hypothesis_specification 这一步不存在feedback，我怀疑应当牺牲一些搜索空间，以更强的约束来保证生成的因子符合要求。如下面注释掉的内容所示
 factor_hypothesis_specification: |-
   1. **1–5 Factors per Generation:**
-    - Ensure each generation produces 1–5 factors.
+    - Ensure each generation produces 1–5 unique factors.
     - Balance simplicity and complexity to build a robust factor library.
-
+  
     - Make full use of the available feature primitives, including:
       - **Level-0 primitives**: raw fields and standard engineered signals  
-        (e.g. open, high, low, close, volume, open_interest, year, month, dayofyear, dayofweek, RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM, etc.).
-      - **Level-1 primitives**: validated composite factors carried over from previous iterations  
-        (e.g. OIMOM20_vol_scaled_VSTD5, PMOM5_vol_scaled_STD5, CORR20_vol_scaled_WVMA5, KLOW_OI_pressure, VMOM5_tanh_squash).
-
-      Level-0 and Level-1 primitives are **both valid building blocks** and may be freely combined, transformed, gated, or further normalized. Their use should be determined by economic meaning and market-structure relevance, not by whether they are raw or precomputed.
-
+        (e.g. open, high, low, close, volume, open_interest, year, month, dayofyear, dayofweek, RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM, STD, VSTD, etc.).
+      - **Level-1 primitives**: validated composite factors carried over from previous iterations and recent enrichments, explicitly including  
+        OIMOM20_vol_scaled_VSTD5, PMOM5_vol_scaled_STD5, CORR20_vol_scaled_WVMA5, KLOW_OI_pressure, VMOM5_tanh_squash,  
+        KLOW_OI_momentum_filter, OI_accel_VSTD20_smooth_horizon_blend, range_vol_efficiency5,  
+        Seasonal_CORR20_WVMA5_carry_adjusted, Seasonal_OIMOM20_harvest_participation.
+  
+      Level-0 and Level-1 primitives are **both valid baisc building blocks** and may be freely combined, transformed, gated, or further normalized. Their use should be determined by economic meaning and market-structure relevance, not by whether they are raw or precomputed.
+    - Each factor during generation must explicitly incorporate at least one time-related information (e.g. year, month, dayofyear, dayofweek) into factor construction.
+      Time variables should not be used as standalone hard calendar dummies, but rather to condition, modulate, gate, or interact with price, volatility, or participation-related signals, in a way that reflects the seasonal and structural characteristics of soybean futures markets.
     - To avoid over-reliance on precomputed building blocks, each generation should include **at least one factor whose core signal is derived directly from transformations or interactions of raw fields**
       ("open, high, low, close, volume, open_interest").
       Precomputed primitives (including Level-1 factors) may still be used as modulators, conditioners, or secondary inputs.
-
+  
   2. **Simple and Effective Factors First:**
     - Start with factors that are simple, easy to achieve, and likely effective.
     - Concisely explain why these factors are expected to work.
     - Avoid complex or heavily layered constructions initially.
-
+  
   3. **Meaningful Combinations:**
     - The notion of a “meaningful” factor or combination should be understood from the perspective of soybean futures market structure and economic.
-    - Each new factor must involve meaningful computation beyond a direct copy of an existing column. Baseline features may be freely used as inputs, provided the resulting factor introduces a clear transformation, interaction, or normalization.
-    - Combinations should not be arbitrary; they must have clear economic or statistical justification on futures scenario (e.g., trend × volatility to capture momentum under uncertainty; residual deviation × regime indicators; participation pressure × price acceleration; or seasonality or calendar variables used to condition or modulate price, volatility, or participation-based signals in agricultural futures).
-    - Timing variables are optional; if used, avoid standalone hard calendar dummies and instead use them to condition or modulate other signals.
+    - Each new factor must involve meaningful computation beyond a direct copy of an existing column. Available feature primitives may be freely used as inputs, provided the resulting factor introduces a clear transformation, interaction, or normalization.
+    - Combinations should not be arbitrary; they must admit a clear economic or statistical rationale within a futures market context. In particular, combinations should reflect interpretable interactions between different aspects of market structure (such as price dynamics, volatility, participation, or temporal context), rather than relying on mechanically applied functional forms or ad hoc feature mixing.
+    - Timing variables (year, month, dayofyear, dayofweek) play an important role in agricultural futures. They are optional; if used, avoid standalone hard calendar dummies and instead use them to condition or modulate other signals.
     - Before proposing a new factor, briefly check whether its formulation is economically or structurally redundant with factors tested in previous iterations (e.g., pure renaming or algebraic rearrangements without a new economic interpretation). Window or parameter variations are acceptable when they represent a different time-scale or market regime perspective.
-
+  
   4. **Gradual Complexity Increase:**
     - Introduce more complex factors (e.g. machine learning based factors, factors using multi-dimensional factor raw data, etc.) as more experimental results are gathered.
     - This part has relatively low priority.
-
+  
   5. **New Directions and Optimizations:**
     - If multiple consecutive iterations fail to produce factors surpassing SOTA, consider switching to a new direction and start with simple factors again.
     - If optimizing a specific type of factor, proceed from simple to complex.
-
+  
   6. Note
     - Highlight that factors surpassing SOTA are included in the library to avoid re-implementation.
     - No matter how many factors you plan to generate, only reply with one set of hypothesis and reason. The hypothesis can include the proposal of multiple factors at the same time.
@@ -137,12 +144,106 @@ factor_hypothesis_specification: |-
       - x.quantile(q), x.median(), x.mean(), x.std(), x.rank(), ... computed on the full history,
       - thresholds/constants described as “in-sample”, “full history”, “whole sample”, “global”,
       - any pooling over all time/instruments to set a fixed threshold.
-
+  
     - Allowed replacements (preferred):
       - rolling/expanding statistics computed using only historical data, and preferably shifted:
         theta_t = rolling(W).quantile(q).shift(1) or expanding().quantile(q).shift(1)
       - apply per-instrument (In our scenario only one instrument) unless explicitly justified otherwise.
       If a factor requires a threshold/centering constant, it must be defined in this causal form
+# factor_hypothesis_specification: |-
+
+#   ================================
+#   A. TASK CONTEXT (NON-BINDING)
+#   ================================
+#   You are designing alpha factors for soybean futures under a single-instrument setting.
+#   The objective is to iteratively build a robust, economically interpretable factor library
+#   that improves upon existing SOTA signals while avoiding redundancy and data leakage.
+
+#   This section is for background understanding only and MUST NOT be treated as generation rules.
+
+#   ================================
+#   B. GENERATION PROTOCOL (BINDING)
+#   ================================
+
+#   B1. OUTPUT SCOPE & CARDINALITY
+#   --------------------------------
+#   - Each generation MUST propose between 1 and 5 factors.
+#   - All proposed factors MUST be grouped under ONE unified hypothesis and ONE unified rationale.
+#   - Even if multiple factors are proposed, DO NOT output multiple hypotheses or reasons.
+
+#   B2. ALLOWED BUILDING BLOCKS
+#   --------------------------------
+#   You MAY freely use and combine the following primitives:
+
+#   - Level-0 primitives (raw & standard signals):
+#     open, high, low, close, volume, open_interest,
+#     year, month, dayofyear, dayofweek,
+#     RESI, RSQR, WVMA, CORR, CORD, KLEN, KLOW, PMOM, VMOM, OIMOM, etc.
+
+#   - Level-1 primitives (validated composite factors from previous iterations):
+#     e.g. OIMOM20_vol_scaled_VSTD5,
+#          PMOM5_vol_scaled_STD5,
+#          CORR20_vol_scaled_WVMA5,
+#          KLOW_OI_pressure,
+#          VMOM5_tanh_squash.
+
+#   Level-0 and Level-1 primitives are BOTH valid building blocks.
+#   Selection MUST be based on economic meaning and market-structure relevance,
+#   NOT on whether a signal is raw or precomputed.
+
+#   B3. MANDATORY STRUCTURAL REQUIREMENTS
+#   --------------------------------
+#   - At least ONE proposed factor MUST have its core signal derived DIRECTLY from
+#     transformations or interactions of RAW FIELDS ONLY:
+#     (open, high, low, close, volume, open_interest).
+#   - For such raw-field-driven core signals, you MAY use Level-0 and Level-1 primitives as modulators, conditioners, gates, or secondary scaling inputs.
+
+#   B4. PROHIBITED PATTERNS
+#   --------------------------------
+#   - DO NOT propose factors that are:
+#     - direct copies of existing columns,
+#     - pure renamings,
+#     - trivial algebraic rearrangements without a new economic interpretation.
+
+#   - Window or parameter variations are ONLY allowed if they reflect:
+#     - a different time scale, or
+#     - a distinct market regime perspective.
+
+#   B5. CAUSALITY & NO-LEAKAGE RULE (CRITICAL)
+#   --------------------------------
+#   [No-Global-Stats Rule — STRICTLY ENFORCED]
+
+#   You MUST NOT use any global or full-sample statistics across time, including but not limited to:
+#     - x.quantile(q), x.median(), x.mean(), x.std(), x.rank() computed on full history,
+#     - thresholds or constants defined using the whole sample,
+#     - any look-ahead or pooled statistics.
+
+#   If a factor requires a threshold, centering constant, or normalization reference,
+#   it MUST be defined in a causal form using ONLY historical data, for example:
+
+#     theta_t = rolling(W).quantile(q).shift(1)
+#     theta_t = expanding().quantile(q).shift(1)
+
+#   All statistics MUST be computed per-instrument
+#   (single instrument in this scenario) unless explicitly justified otherwise.
+
+#   ================================
+#   C. DESIGN PREFERENCES (NON-BINDING)
+#   ================================
+#   - Prefer simple, interpretable factors before complex or heavily layered constructions.
+#   - Clearly explain why each proposed factor is expected to work
+#     from a soybean futures market-structure perspective.
+#   - If timing variables (year, month, dayofyear, dayofweek) are used,
+#     they SHOULD condition or modulate other signals rather than act as standalone dummies.
+
+#   ================================
+#   D. SEARCH & ITERATION GUIDANCE (LOW PRIORITY)
+#   ================================
+#   - If multiple consecutive iterations fail to surpass SOTA,
+#     consider switching to a new direction and restarting from simple factors.
+#   - More complex constructions (e.g. ML-based or multi-dimensional raw data factors)
+#     may be introduced gradually as empirical evidence accumulates.
+
 
 factor_experiment_output_format: |-
   The output should follow JSON format. The schema is as follows:

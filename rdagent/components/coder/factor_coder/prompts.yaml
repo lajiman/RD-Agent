@@ -1,3 +1,7 @@
+# 对[NOTE — Critical]部分添加内容，反馈在 coding step 的 evolving loop 中反馈数据泄露的问题。
+# 此处的修改 和 RD-Agent/rdagent/scenarios/qlib/prompts.yaml 中的 factor_hypothesis_specification 中相关内容的修改需要配合使用：
+# 1. 此处在生成后给出反馈
+# 2. factor_hypothesis_specification 在生成前给出提示，提醒用户注意时间序列数据泄露的问题
 
 evaluator_code_feedback_v1_system: |-
   User is trying to implement some factors in the following scenario:

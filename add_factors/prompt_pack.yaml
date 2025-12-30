@@ -25,4 +25,4 @@ generation:
       - Keep no-lookahead constraints intact and do not introduce global/full-sample statistics.
       - Keep the writing concise, enforceable, and consistent with the example. Do not modify anything other than the factors unless absolutely necessary.
     examples: |-
-      Optional notes you want appended after the example pack.
+      This time I do not to add any level-0 or level-1 factors in my prompt. But I want to emphasize that, factors generation should use time information (year, month, dayofyear, dayofweek), and align with the charactor of soybean futures. Please do not change other parts of my prompt.

@@ -15,8 +15,11 @@ logger = get_module_logger("workflow", logging.INFO)
 
 class TSSigAnaRecord(ACRecordTemp):
     """
-    This is the Signal Analysis Record class that generates the analysis results such as IC and IR in time series.
-    This class inherits the ``RecordTemp`` class.
+    发生在Qlib模型训练后，记录训练结果的阶段.
+    用于处理单标的主力连续模型的结果分析（界面 -> 时序），这样UI的展示才不会出错.
+    与 RD-Agent/rdagent/scenarios/qlib/model/logging_lgbm.py 中的 LGBModelWithFeatLog 不同的是，LGBModelWithFeatLog处理单因子的IC，
+    TSSigAnaRecord处理模型预测值（signal）的IC；发生的阶段也不同，前者在模型训练阶段，后者在模型训练后.
+    继承普通 ACRecordTemp 类.
     """
 
     artifact_path = "sig_analysis"
@@ -69,13 +72,8 @@ class TSSigAnaRecord(ACRecordTemp):
     #     pprint(metrics)
     #     return objects
 
+    # 重写 _generate 方法，支持单标的时间序列 IC 计算
     def _generate(self, label: Optional[pd.DataFrame] = None, **kwargs):
-        """
-        Parameters
-        ----------
-        label : Optional[pd.DataFrame]
-            Label should be a dataframe.
-        """
         pred = self.load("pred.pkl")
         if label is None:
             label = self.load("label.pkl")
@@ -83,7 +81,6 @@ class TSSigAnaRecord(ACRecordTemp):
             logger.warning("Empty label.")
             return
 
-        # 取出一列预测和一列 label（与原实现一致）
         pred_s = pred.iloc[:, 0]
         label_s = label.iloc[:, self.label_col]
 
@@ -125,6 +122,7 @@ class TSSigAnaRecord(ACRecordTemp):
                     }
                 )
 
+        # 只触发这条分支
         else:
             # ===== 2) 截面退化（典型单标场景）：fallback 为时间序列 IC =====
             logger.warning(
@@ -133,6 +131,7 @@ class TSSigAnaRecord(ACRecordTemp):
             )
 
             # pred_ts / label_ts：按时间对齐的单标时间序列
+            # 这里AI做了冗余处理，实际有效的是“pred_ts, label_ts = pred_s.align(label_s, join="inner")”，和 RD-Agent/rdagent/scenarios/qlib/model/logging_lgbm.py 的思路一致
             idx = pred_s.index
             if isinstance(idx, pd.MultiIndex) and "datetime" in idx.names:
                 # 多层索引（datetime, instrument），只保留按 datetime 聚合后的单标时间序列
@@ -142,11 +141,10 @@ class TSSigAnaRecord(ACRecordTemp):
                 # 普通索引：直接按 index 对齐
                 pred_ts, label_ts = pred_s.align(label_s, join="inner")
 
-            # 时间序列相关性（整体一条时间序列）
+            # 计算 IC / RIC
             ts_ic = float(pred_ts.corr(label_ts)) if len(pred_ts) > 1 else np.nan
             ts_ric = float(pred_ts.corr(label_ts, method="spearman")) if len(pred_ts) > 1 else np.nan
 
-            # 这里我们用 TS-IC 直接填到 IC / Rank IC 中；
             # ICIR / Rank ICIR 在“时间序列整体一个点”的意义下不再合理，设为 NaN
             metrics = {
                 "IC": ts_ic,

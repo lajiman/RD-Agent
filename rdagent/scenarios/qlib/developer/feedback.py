@@ -194,12 +194,11 @@ class QlibFactorExperiment2Feedback(Experiment2Feedback):
         # Process the results to filter important metrics
         combined_result = process_results(current_result, sota_result)
 
-        # ====== 新增：把单因子 IC 注入 combined_result，但过滤掉 Qlib 自带因子 ======
+        # ====== 新增：把单因子 IC 注入 combined_result，但过滤掉 Qlib 自带因子。这样，agent在思考时会更好的考虑到单因子，而不仅仅是整体 signal ======
         try:
             ws = getattr(exp, "experiment_workspace", None)
             exp_dir = getattr(ws, "workspace_path", None) if ws is not None else None
 
-            # 兼容 Path / str
             if exp_dir is not None and hasattr(exp_dir, "__fspath__"):
                 exp_dir = str(exp_dir)
 

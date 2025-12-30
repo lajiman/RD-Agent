@@ -8,6 +8,12 @@ import pandas as pd
 from qlib.contrib.strategy import WeightStrategyBase
 from qlib.backtest.position import Position
 
+'''
+在SignalRecord的基础上,提供了一个单标的序列的可选回测策略
+虽然我们不太关注回测策略，但至少需要一个可用的策略
+目前使用的是 SingleAssetSmoothQuantileStrategy ，基于分位数的平滑映射策略。目前这个策略的 return 变化，和 signal 的 IC 变化呈现一致性，说明策略是合理的
+'''
+
 
 class SingleAssetThresholdStrategy(WeightStrategyBase):
     """
@@ -137,9 +143,9 @@ class SingleAssetThresholdStrategy(WeightStrategyBase):
 class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
     """
     单资产平滑分位数策略（适用于 HP_CME_SOY 等单标期货）
+    发生在 Qlib 回测 / 交易阶段（WeightStrategyBase.generate_target_weight_position）：
 
     功能概述：
-    - 输入：模型预测的 signal（一般就是 <PRED> 那一列，表示未来 7 日收益的预测）
     - 步骤：
         1) 对 signal 做时间序列平滑（滚动均值），降低日度噪声 → 得到 smooth_signal_t
         2) 用过去一段历史的 smooth_signal，按分位数估计动态阈值：
@@ -229,16 +235,14 @@ class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
     def _smooth_signal(self, inst: str, new_val: float) -> float:
         """
         对某个 instrument 的最新 signal 做滚动平滑，返回平滑后的值。
-        使用的是简单滚动均值。
+        使用简单滚动均值。
         """
         raw_deque = self._raw_hist[inst]
         raw_deque.append(float(new_val))
 
-        # 使用最近 smooth_window 个值做均值（包含当前值）
         window = min(self.smooth_window, len(raw_deque))
         smooth_val = float(np.mean(list(raw_deque)[-window:]))
 
-        # 将平滑后的值存入历史，用于后续分位数估计
         self._smooth_hist[inst].append(smooth_val)
 
         return smooth_val
@@ -247,15 +251,14 @@ class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
         """
         基于历史的平滑信号，计算高低分位数阈值。
         只用过去的数据（不含当前刚加入的那一个），避免“看未来”。
+        历史不足时返回 None，让外层退化为简单映射。
         """
         smooth_hist = self._smooth_hist[inst]
 
-        # 历史长度不够时，返回 None，让外层回退到简单 mapping
         if len(smooth_hist) <= self.min_history:
             return None, None
 
-        # 只用最近 quantile_history_window 个历史值
-        history = list(smooth_hist)[:-1]  # 排除最新的一个（当前步）
+        history = list(smooth_hist)[:-1]
         if len(history) > self.quantile_history_window:
             history = history[-self.quantile_history_window:]
 
@@ -269,7 +272,6 @@ class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
         except Exception:
             return None, None
 
-        # 避免 q_high <= q_low 的退化情况
         if not np.isfinite(q_low) or not np.isfinite(q_high) or q_high <= q_low:
             return None, None
 
@@ -285,33 +287,27 @@ class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
         # 第一步：平滑当前 signal
         smooth_val = self._smooth_signal(inst, val)
 
-        # 第二步：估计分位数阈值（只用过去历史）
+        # 第二步：分位数阈值
         q_low, q_high = self._get_quantile_thresholds(inst)
 
-        # 如果暂时无法估计分位数（历史不够 / 异常），
-        # 则退化为：直接用 smooth_val 做一个简单 tanh 映射
+        # 映射到权重空间的中间值 w ∈ (-1, 1)
         if q_low is None or q_high is None:
-            # 这里不做居中标准化，直接按原值映射
             z = self.tanh_scale * smooth_val
             w = np.tanh(z)
         else:
-            # 将 smooth_val 转换为一个标准化的 z 值：
-            # 中间区域 [q_low, q_high] → z 约接近 0（权重接近 0）
-            # 高于 q_high → z > 0；低于 q_low → z < 0
             mid = 0.5 * (q_low + q_high)
-            scale = max(q_high - q_low, 1e-6)  # 防止除 0
+            scale = max(q_high - q_low, 1e-6)
 
             z = (smooth_val - mid) / scale
             w = np.tanh(self.tanh_scale * z)
 
-        # 第三步：将 w ∈ (-1, 1) 缩放到多空权重空间
+        # 第三步：将 w ∈ (-1, 1) 映射到实际仓位
         if self.allow_short:
             # 允许做空：对称缩放到 [max_short_weight, max_long_weight]
-            # 这里简单处理为：正方向用 max_long_weight，负方向用 max_short_weight 的比例
             if w >= 0:
                 weight = w * float(self.max_long_weight)
             else:
-                weight = -w * float(abs(self.max_short_weight)) * -1.0  # 等价于 w * |max_short_weight|
+                weight = -w * float(abs(self.max_short_weight))
         else:
             # 不允许做空：负值截断为 0，只保留正方向
             w = max(0.0, w)
@@ -348,12 +344,11 @@ class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
             {instrument: target_weight} 的字典。
         """
 
-        # 统一成 Series：index=instrument, value=float score
+        # 统一 score 成 Series：index=instrument, value=float score
         if isinstance(score, pd.DataFrame):
             if "score" in score.columns:
                 s = score["score"]
             else:
-                # 如果只有 1 列，就用这唯一一列；否则退化为第一列
                 if score.shape[1] == 1:
                     s = score.iloc[:, 0]
                 else:
@@ -362,11 +357,9 @@ class SingleAssetSmoothQuantileStrategy(WeightStrategyBase):
             s = score
 
         s = s.astype(float)
-
         target: Dict[str, float] = {}
 
         for inst, val in s.items():
-            # 将 signal 映射为权重（内部包含平滑 + 分位数 + tanh）
             w = self._map_signal_to_weight(inst, val)
             target[inst] = w
 

@@ -661,7 +661,7 @@ class APIBackend(ABC):
                         )
 
                     # ---- 2) 在 dict 上做 stringify 容错 ----
-                    fixed = {}
+                    fixed = {} 
                     for k, v in obj.items():
                         if isinstance(v, (dict, list)):
                             fixed[k] = json.dumps(v, ensure_ascii=False)
